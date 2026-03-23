@@ -23,7 +23,7 @@ def replace_spaces(line):
 
 
 def convert_to_markdown(input_file, output_file, preview=False):
-    print(f"Input: {input_file}")
+    print(f"{input_file}")
 
     # Read
     with open(input_file, "r", encoding="UTF8") as infile:
