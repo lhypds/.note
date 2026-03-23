@@ -115,19 +115,17 @@ def convert_to_markdown(input_file, output_file, preview=False):
             if preview:
                 actions.append("prefix_tofu,escape_blockquote")
 
-        # if line.trim() start with # then it is not a title in markdown
-        # it is a comment, use \# to replace #
+        # if line.trim() start with # then it is not a title in markdown, escape it
         elif line.startswith("#"):
-            output_line = "\\" + line
+            output_line = prefix_tofu(line)
             if preview:
-                actions.append(f"replace({line!r},{output_line!r})")
+                actions.append(f"prefix_tofu,escape_#")
 
-        # if the line.trim() starts with $ it is not a fomular in markdown
-        # it is maybe a bash input, use \$ to replace the $
+        # if the line.trim() starts with $ it is not a fomular in markdown, escape it
         elif line.startswith("$"):
-            output_line = "\\" + line
+            output_line = prefix_tofu(line)
             if preview:
-                actions.append(f"replace({line!r},{output_line!r})")
+                actions.append(f"prefix_tofu,escape_$")
 
         else:
             output_line = line
