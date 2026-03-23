@@ -5,7 +5,7 @@ note
 note is a format.
 
 Basiclly it is free to write, but there are few rules to follow:  
-- Note file name should be `ABC Note`, X is the topic.  
+- Note file name should be `ABC Note`, `ABC` is the topic.  
 - Title with double underline (`=`), section title with a underline (`-`).  
 - The First section title will be `ABC`. Describes the topic.  
 
