@@ -35,12 +35,12 @@ note markdown
 Convert note to Markdown format.  
 `python note_markdown.py`  
 
-* Path to note files.
+* Path to note files  
 It will use the `NOTE_DIR` as path.  
 Or set with `--path` option.  
 If both not set, it will use `../` as default path.  
 
-* Preview result
+* Preview result  
 `python note_markdown.py --preview abc_note.txt`  
 Output `abc_note_pr.md` and `abc_note_pr.txt`.  
 
