@@ -1,14 +1,10 @@
 import os
 import re
-import subprocess
 import argparse
 from dotenv import load_dotenv
 
 load_dotenv()
-
-
-def first_non_whitespace_position(s):
-    return len(s) - len(s.lstrip())
+USE_NSFW_FILTER = os.getenv("USE_NSFW_FILTER", "true").lower() == "true"
 
 
 def replace_spaces(line):
@@ -26,144 +22,100 @@ def replace_spaces(line):
     return line
 
 
-def git_file_added(file_path):
-    try:
-        git_log_command = ["git", "log", "--diff-filter=A", "--", file_path]
-        result = subprocess.run(
-            git_log_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-        if result.stdout:
-            lines = result.stdout.split("\n")
-            for line in lines:
-                if line.startswith("Date:"):
-                    created_at = line[(line.find("Date:") + 6) : line.find("+")].strip()
-                    return f"Created: {created_at}"
-            print(
-                f"No add information found for {file_path}. It may not be tracked by Git."
-            )
-        else:
-            print(
-                f"No log information found for {file_path}. It may not be tracked by Git."
-            )
-    except Exception as e:
-        print(f"An error occurred: {e}")
+def convert_to_markdown(input_file, output_file, preview=False):
+    print(f"Input: {input_file}")
 
-
-def git_last_modifed(file_path):
-    try:
-        git_log_command = ["git", "log", "-n 1", file_path]
-        result = subprocess.run(
-            git_log_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-        result_lines = result.stdout.split("\n")
-        for line in result_lines:
-            if line.startswith("Date:"):
-                last_modified = line[(line.find("Date:") + 6) : line.find("+")].strip()
-                return f"Modified: {last_modified}"
-    except Exception as e:
-        print(f"An error occurred: {e}")
-
-
-def convert_to_markdown(
-    input_file, output_file, preview=False, preview_output_dir=None
-):
-    print(f"{input_file}")
-    use_date = os.getenv("USE_DATE", "False").lower() == "true"
-    added_at = git_file_added(input_file) if use_date else None
-    last_modified = git_last_modifed(input_file) if use_date else None
-
-    if preview:
-        preview_actions_result = {}
-
+    # Read
     with open(input_file, "r", encoding="UTF8") as infile:
         lines = infile.readlines()
 
-    with open(output_file, "w", encoding="UTF8") as outfile:
-        i = 0
-        title_index = -1
+    # Process
+    output_lines = []
+    preview_actions_result = {} if preview else None
 
-        while i < len(lines):
-            if i == 4 and use_date:  # add last modified time at line 4
-                outfile.write(added_at + "  \n")
-                outfile.write(last_modified + "  \n")
-                outfile.write("  \n")
+    p = 0
+    while p < len(lines):
 
-            original_line = lines[i].replace("\n", "")
-            line = original_line
-            actions = []
+        line_orig = lines[p].replace("\n", "")
+        line = line_orig
+        actions = []
 
-            # replace the leading spaces with code block
-            if line.startswith(" "):
-                first_non_whitespace_position = len(line) - len(line.lstrip())
-                original_leading = line[0:first_non_whitespace_position]
-                replaced_leading = original_leading.replace(" ", "░")
-                line = replaced_leading + line[first_non_whitespace_position:]
-                actions.append(f"replace({original_leading!r},{replaced_leading!r})")
+        # replace the leading spaces with code block
+        if line.startswith(" "):
+            leading_ws_count = len(line) - len(line.lstrip())
+            original_leading = line[0:leading_ws_count]
+            replaced_leading = original_leading.replace(" ", "░")
+            line = replaced_leading + line[leading_ws_count:]
+            actions.append(f"replace({original_leading!r},{replaced_leading!r})")
 
-            # replace space with non-breaking space
-            # alt 0 1 6 0 or alt 2 5 5 or option space on mac
-            before_replace_spaces = line
-            line = replace_spaces(line)
-            if line != before_replace_spaces:
-                actions.append(f"replace({before_replace_spaces!r},{line!r})")
+        # replace space with non-breaking space
+        # alt 0 1 6 0 or alt 2 5 5 or option space on mac
+        before_replace_spaces = line
+        line = replace_spaces(line)
+        if line != before_replace_spaces:
+            actions.append(f"replace({before_replace_spaces!r},{line!r})")
 
+        output_line = ""
+
+        if not line:  # If line is empty, do nothing
             output_line = ""
 
-            if not line:  # If line is empty, do nothing
-                output_line = ""
+        # if next line is all ==== then current line is title, do nothing
+        elif (
+            p < len(lines) - 1
+            and (lines[p + 1].replace("=", "") == "")
+            and len(lines[p]) == len(lines[p + 1])
+        ):
+            output_line = line
 
-            # if next line is all ==== then current line is title, do nothing
-            elif (
-                i < len(lines) - 1
-                and (lines[i + 1].replace("=", "") == "")
-                and len(lines[i]) == len(lines[i + 1])
-            ):
-                output_line = line
+        # if next line is all --- then current line is section title, do nothing
+        elif (
+            p < len(lines) - 1
+            and (lines[p + 1].replace("-", "") == "")
+            and len(lines[p]) == len(lines[p + 1])
+        ):
+            output_line = line
 
-            # if next line is all --- then current line is section title, do nothing
-            elif (
-                i < len(lines) - 1
-                and (lines[i + 1].replace("-", "") == "")
-                and len(lines[i]) == len(lines[i + 1])
-            ):
-                output_line = line
+        # if line.trim() start with # then it is not a title in markdown
+        # it is a comment, use \# to replace #
+        elif line.startswith("#"):
+            output_line = "\\" + line
+            actions.append(f"replace({line!r},{output_line!r})")
 
-            # if line.trim() start with # then it is not a title in markdown
-            # it is a comment, use \# to replace #
-            elif line.startswith("#"):
-                output_line = "\\" + line
-                actions.append(f"replace({line!r},{output_line!r})")
+        # if the line.trim() starts with $ it is not a fomular in markdown
+        # it is maybe a bash input, use \$ to replace the $
+        elif line.startswith("$"):
+            output_line = "\\" + line
+            actions.append(f"replace({line!r},{output_line!r})")
 
-            # if the line.trim() starts with $ it is not a fomular in markdown
-            # it is maybe a bash input, use \$ to replace the $
-            elif line.startswith("$"):
-                output_line = "\\" + line
-                actions.append(f"replace({line!r},{output_line!r})")
+        else:
+            output_line = line
 
-            else:
-                output_line = line
+        if output_line == "":
+            output_lines.append("\n")
+        else:
+            actions.append("add_2_spaces")
+            output_line += "  "
+            output_lines.append(output_line + "\n")
 
-            if output_line == "":
-                outfile.write("\n")
-            else:
-                actions.append("add_2_spaces")
-                output_line += "  "
-                outfile.write(output_line + "\n")
+        if preview:
+            if not actions:
+                actions = ["do_nothing"]
+            preview_actions_result[p + 1] = (
+                f"[{','.join(actions)}],{line_orig},{output_line}"
+            )
 
-            if preview:
-                if not actions:
-                    actions = ["do_nothing"]
-                preview_actions_result[i + 1] = (
-                    f"[{','.join(actions)}],{original_line},{output_line}"
-                )
+        p += 1
 
-            i += 1
+    # Write
+    with open(output_file, "w", encoding="UTF8") as outfile:
+        outfile.writelines(output_lines)
 
+    # Preview (output)
     if preview:
         original_name = os.path.splitext(os.path.basename(input_file))[0]
         preview_filename = f"{original_name}_pr.txt"
-        if preview_output_dir is None:
-            preview_output_dir = os.path.dirname(output_file)
+        preview_output_dir = os.path.dirname(output_file)
         preview_file = os.path.join(preview_output_dir, preview_filename)
         with open(preview_file, "w", encoding="UTF8") as preview_outfile:
             for line_number, action_result in preview_actions_result.items():
@@ -194,33 +146,21 @@ def main():
         print(f"Error: TARGET_DIR '{input_path}' is not a valid directory.")
         exit(1)
 
-    # Preview
+    # Preview file (single file)
+    if args.preview and not args.filename:
+        print(
+            "Error: --preview requires a filename, e.g. python note_markdown.py --preview filename.txt"
+        )
+        exit(1)
     if args.preview and args.filename:
-        normalized_filename = re.sub(r"\s+", " ", args.filename).strip()
-        base_name, ext = os.path.splitext(normalized_filename)
-        candidate_names = [normalized_filename]
+        filename = args.filename.strip()
+        if not filename.endswith(".txt"):
+            filename += ".txt"
 
-        if ext.lower() == ".md":
-            candidate_names.append(base_name + ".txt")
-            if not base_name.endswith(" Note"):
-                candidate_names.append(base_name + " Note.txt")
-        elif ext.lower() == ".txt":
-            if not base_name.endswith(" Note"):
-                candidate_names.append(base_name + " Note.txt")
-        else:
-            candidate_names.append(normalized_filename + ".txt")
-            candidate_names.append(normalized_filename + " Note.txt")
-
-        input_file = None
-        for candidate_name in candidate_names:
-            candidate_file = os.path.join(input_path, candidate_name)
-            if os.path.isfile(candidate_file):
-                input_file = candidate_file
-                break
-
-        if input_file is None:
+        input_file = os.path.join(input_path, filename)
+        if not os.path.isfile(input_file):
             print(
-                f"Error: file '{normalized_filename}' not found inside TARGET_DIR '{input_path}'."
+                f"Error: file '{filename}' not found inside TARGET_DIR '{input_path}'."
             )
             exit(1)
 
@@ -232,15 +172,8 @@ def main():
             input_file,
             output_file,
             preview=True,
-            preview_output_dir=script_dir,
         )
         return
-
-    if args.preview and not args.filename:
-        print(
-            "Error: --preview requires a filename, e.g. python note_markdown.py --preview filename.txt"
-        )
-        exit(1)
 
     # Process files
     # Create .markdown folder in the target directory
@@ -249,8 +182,7 @@ def main():
         os.makedirs(output_path)
 
     # Read filter setting from .env file
-    use_nsfw_filter = os.getenv("USE_NSFW_FILTER", "true").lower() == "true"
-    note_filter = ["Sex", "Adult"] if use_nsfw_filter else []
+    note_filter = ["Sex", "Adult"] if USE_NSFW_FILTER else []
 
     for filename in os.listdir(input_path):
         # Assuming all your note files have .txt extension
