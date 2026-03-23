@@ -20,13 +20,15 @@ note markdown
 -------------
 
 Convert note to Markdown format.  
+`python note_markdown.py`  
+By default will process `../` folder notes.  
 
 Preview result:  
 `python note_markdown.py --preview abc_note.txt`  
 
 Helper scripts:  
-`notemd.sh`  
-`notemd_preview.sh`  
+`note_markdown.sh`  
+`preview.sh`  
 
 
 note tools

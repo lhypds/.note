@@ -11,18 +11,18 @@ if [ ! -f ".env" ]; then
     exit 1
 fi
 
-# Read TARGET_DIR from .env
-TARGET_DIR=$(grep "^TARGET_DIR=" .env | cut -d '=' -f 2)
+# Read NOTE_DIR from .env
+NOTE_DIR=$(grep "^NOTE_DIR=" .env | cut -d '=' -f 2)
 
 # Trim whitespace and trailing slash
-TARGET_DIR=$(echo "$TARGET_DIR" | xargs | sed 's:/*$::')
+NOTE_DIR=$(echo "$NOTE_DIR" | xargs | sed 's:/*$::')
 
-if [ -z "$TARGET_DIR" ]; then
-    echo "Error: TARGET_DIR not found in .env"
+if [ -z "$NOTE_DIR" ]; then
+    echo "Error: NOTE_DIR not found in .env"
     exit 1
 fi
 
-MARKDOWN_PATH="$TARGET_DIR/.markdown"
+MARKDOWN_PATH="$NOTE_DIR/.markdown"
 
 # Check if .markdown folder exists
 if [ ! -d "$MARKDOWN_PATH" ]; then

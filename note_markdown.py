@@ -169,21 +169,21 @@ def main():
     parser.add_argument(
         "--preview",
         action="store_true",
-        help="Preview actions for one file from TARGET_DIR.",
+        help="Preview actions for one file from NOTE_DIR.",
     )
     parser.add_argument(
         "filename",
         nargs="?",
-        help="Filename inside TARGET_DIR. Used with --preview to process only one file.",
+        help="Filename inside NOTE_DIR. Used with --preview to process only one file.",
     )
     args = parser.parse_args()
 
     # Read target directory from .env file
-    input_path = os.getenv("TARGET_DIR", "../")
+    input_path = os.getenv("NOTE_DIR", "../")
 
     # Ensure input_path is a valid directory
     if not os.path.isdir(input_path):
-        print(f"Error: TARGET_DIR '{input_path}' is not a valid directory.")
+        print(f"Error: NOTE_DIR '{input_path}' is not a valid directory.")
         exit(1)
 
     # Preview file (single file)
@@ -199,9 +199,7 @@ def main():
 
         input_file = os.path.join(input_path, filename)
         if not os.path.isfile(input_file):
-            print(
-                f"Error: file '{filename}' not found inside TARGET_DIR '{input_path}'."
-            )
+            print(f"Error: file '{filename}' not found inside NOTE_DIR '{input_path}'.")
             exit(1)
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
