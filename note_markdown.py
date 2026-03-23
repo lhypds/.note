@@ -179,7 +179,7 @@ def main():
     args = parser.parse_args()
 
     # Read target directory from .env file
-    input_path = os.getenv("TARGET_DIR", "./")
+    input_path = os.getenv("TARGET_DIR", "../")
 
     # Ensure input_path is a valid directory
     if not os.path.isdir(input_path):
@@ -213,6 +213,7 @@ def main():
             output_file,
             preview=True,
         )
+        print("Processed files: 1")
         return
 
     # Process files
@@ -223,6 +224,7 @@ def main():
 
     # Read filter setting from .env file
     note_filter = ["Sex", "Adult"] if USE_NSFW_FILTER else []
+    processed_count = 0
 
     for filename in os.listdir(input_path):
         # Assuming all your note files have .txt extension
@@ -233,6 +235,9 @@ def main():
             output_file = os.path.join(output_path, filename.replace(".txt", ".md"))
 
             convert_to_markdown(input_file, output_file)
+            processed_count += 1
+
+    print(f"Processed files: {processed_count}")
 
 
 if __name__ == "__main__":

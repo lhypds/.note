@@ -21,8 +21,12 @@ note markdown
 
 Convert note to Markdown format.  
 
-Preview result:
-`python notemd.py --preview abc_note.txt`
+Preview result:  
+`python note_markdown.py --preview abc_note.txt`  
+
+Helper scripts:  
+`notemd.sh`  
+`notemd_preview.sh`  
 
 
 note tools

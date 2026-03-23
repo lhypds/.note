@@ -50,6 +50,6 @@ if [ -z "$FILENAME" ]; then
 fi
 
 echo "Previewing: $FILENAME"
-python notemd.py --preview "$FILENAME"
+python note_markdown.py --preview "$FILENAME"
 
 echo "✓ Done"

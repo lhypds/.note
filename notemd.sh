@@ -37,7 +37,7 @@ else
     exit 1
 fi
 
-echo "Running notemd.py on TARGET_DIR: $TARGET_DIR"
-python notemd.py
+echo "Running note_markdown.py on TARGET_DIR: $TARGET_DIR"
+python note_markdown.py
 
 echo "✓ Done"
