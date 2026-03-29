@@ -2,6 +2,7 @@
 Setup for Sublime Text
 ======================
 
+
 1.1 
 Open Sublime Text.  
 Go to `Settings` -> `Browse Packages...` and open the `User` folder.  

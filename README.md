@@ -2,6 +2,7 @@
 .note
 =====
 
+
 note is a format.
 
 Basiclly it is free to write, but there are few rules to follow:  

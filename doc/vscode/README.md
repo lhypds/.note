@@ -2,6 +2,7 @@
 How to Setup on VS Code
 =======================
 
+
 1. Install `Run on Save` (Author: `emeraldwalk`) extension in Marketplace of VS Code.  
 
 2. Add the following configuration to `settings.json`.
