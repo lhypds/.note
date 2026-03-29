@@ -5,7 +5,12 @@ edition = "2021"
 
 [[bin]]
 name = "note"
-path = "src/main.rs"
+path = "src/note.rs"
+
+[[bin]]
+name = "notemd"
+path = "src/note_markdown.rs"
 
 [dependencies]
 unicode-width = "0.1"
+dotenvy = "0.15"

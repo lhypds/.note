@@ -18,6 +18,7 @@ Executable that format the notes.
 
 * Python version  
 Use `setup.sh` to setup and use `build.sh` to build.  
+`build.sh` generates both `note` and `notemd`.  
 
 * Rust version  
 Rust version is faster.  
@@ -39,6 +40,7 @@ note markdown
 
 Convert note to Markdown format.  
 `python note_markdown.py`  
+Or use executable `./notemd` after running `build.sh`.  
 
 * Path to note files  
 It will use the `NOTE_DIR` as path.  
