@@ -41,9 +41,7 @@ def create_note(name, directory="."):
 def build_parser():
     parser = argparse.ArgumentParser(description="Create a new note file.")
     parser.add_argument(
-        "--name",
-        "-n",
-        required=False,
+        "name",
         help="Basename of the note file (e.g. 'ABC Note' creates 'ABC Note.txt').",
     )
     parser.add_argument(
@@ -58,10 +56,6 @@ def build_parser():
 def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
-
-    if not args.name:
-        print("Error: no name provided.")
-        raise SystemExit(1)
 
     create_note(args.name, args.directory)
 

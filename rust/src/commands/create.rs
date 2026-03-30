@@ -34,15 +34,6 @@ pub fn main(argv: &[String]) {
     let mut i = 0usize;
     while i < argv.len() {
         match argv[i].as_str() {
-            "--name" | "-n" => {
-                if i + 1 < argv.len() {
-                    name = Some(argv[i + 1].clone());
-                    i += 2;
-                } else {
-                    eprintln!("Error: --name requires an argument.");
-                    std::process::exit(1);
-                }
-            }
             "--directory" | "-d" => {
                 if i + 1 < argv.len() {
                     directory = argv[i + 1].clone();
@@ -51,6 +42,10 @@ pub fn main(argv: &[String]) {
                     eprintln!("Error: --directory requires an argument.");
                     std::process::exit(1);
                 }
+            }
+            arg if !arg.starts_with('-') => {
+                name = Some(arg.to_string());
+                i += 1;
             }
             arg => {
                 eprintln!("Error: unrecognized argument '{}'.", arg);
