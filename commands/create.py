@@ -12,10 +12,10 @@ def display_width(text):
 
 
 def create_note(name, directory="."):
-    file_name = f"{name} Note.txt"
+    file_name = f"{name}.txt"
     file_path = os.path.join(directory, file_name)
 
-    title = f"{name} Note"
+    title = name
     title_underline = "=" * display_width(title)
     section = name
     section_underline = "-" * display_width(section)
@@ -44,7 +44,7 @@ def build_parser():
         "--name",
         "-n",
         required=False,
-        help="Name of the note (e.g. ABC creates 'ABC Note.txt').",
+        help="Basename of the note file (e.g. 'ABC Note' creates 'ABC Note.txt').",
     )
     parser.add_argument(
         "--directory",

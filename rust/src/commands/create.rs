@@ -7,11 +7,11 @@ fn display_width(text: &str) -> usize {
 }
 
 pub fn run(name: &str, directory: &str) -> Result<(), String> {
-    let file_name = format!("{} Note.txt", name);
+    let file_name = format!("{}.txt", name);
     let file_path = PathBuf::from(directory).join(&file_name);
 
-    let title = format!("{} Note", name);
-    let title_underline = "=".repeat(display_width(&title));
+    let title = name;
+    let title_underline = "=".repeat(display_width(title));
     let section = name;
     let section_underline = "-".repeat(display_width(section));
 
