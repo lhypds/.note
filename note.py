@@ -4,6 +4,7 @@ import sys
 from commands import create as create_command
 from commands import format as format_command
 from commands import markdown as markdown_command
+from commands import update as update_command
 
 _VERSION_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "VERSION")
 VERSION = open(_VERSION_FILE).read().strip()
@@ -37,6 +38,13 @@ Commands:
               <file>                  Path to the .txt file to process.
             Options:
               --preview               Also write a preview action log file.
+
+  update    Check for a newer release on GitHub and install it if available.
+
+            note update [-f]
+
+            Options:
+              -f, --force             Reinstall even if already on the latest version.
 """
 
 
@@ -68,6 +76,10 @@ def main(argv=None):
 
     if command == "markdown":
         markdown_command.main(command_args)
+        return
+
+    if command == "update":
+        update_command.main(command_args)
         return
 
     format_command.main(argv)
