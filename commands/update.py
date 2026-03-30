@@ -193,4 +193,4 @@ def main(argv=None):
         print(f"Error: install.sh exited with code {result.returncode}.")
         sys.exit(result.returncode)
 
-    print(f"\nnote has been updated to v{latest_version}.")
+    print(f"`note` has been updated to v{latest_version}.")

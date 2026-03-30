@@ -310,7 +310,7 @@ pub fn main(argv: &[String]) {
         exit(status.code().unwrap_or(1));
     }
 
-    println!("\nnote has been updated to v{}.", latest_version);
+    println!("`note` has been updated to v{}.", latest_version);
 }
 
 fn dirs_home() -> PathBuf {
