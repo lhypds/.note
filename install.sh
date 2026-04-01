@@ -35,12 +35,12 @@ fi
 echo "Detected build type: $VARIANT"
 
 # ── Install ───────────────────────────────────────────────────────────────
-echo "Installing `note` ($VARIANT) …"
+echo "Installing \`note\` ($VARIANT) …"
 
 if [ "$VARIANT" = "rust" ]; then
     # Single self-contained binary — copy directly into BIN_DIR
     sudo install -m 755 "$ROOT_DIR/note" "$BIN_DIR/note"
-    echo "Installed to `$BIN_DIR/note`"
+    echo "Installed to \`$BIN_DIR/note\`"
 
 elif [ "$VARIANT" = "python" ]; then
     # PyInstaller onedir bundle — install bundle then symlink
