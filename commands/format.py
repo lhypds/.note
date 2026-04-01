@@ -63,10 +63,62 @@ def format_note(file_path):
             lines[i + 2] = new_line
             fixed_count += 1
 
+    # Ensure exactly 2 blank lines after a `===` title underline.
+    i = 0
+    while i < len(lines):
+        trimmed = lines[i].rstrip("\r\n")
+        if trimmed and trimmed.replace("=", "") == "":
+            # Count blank lines immediately following the underline.
+            blank_count = 0
+            j = i + 1
+            while j < len(lines) and lines[j].rstrip("\r\n") == "":
+                blank_count += 1
+                j += 1
+            if blank_count < 2:
+                ending = detect_line_ending(lines[i])
+                blank_line = ending
+                needed = 2 - blank_count
+                for k in range(needed):
+                    lines.insert(i + 1 + k, blank_line)
+                fixed_count += needed
+                i += 1 + needed + blank_count
+            elif blank_count > 2:
+                excess = blank_count - 2
+                del lines[i + 1 : i + 1 + excess]
+                fixed_count += excess
+                i += 1 + 2
+            else:
+                i += 1 + blank_count
+        else:
+            i += 1
+
+    # Ensure exactly 1 blank line after a `---` section title underline.
+    i = 0
+    while i < len(lines):
+        trimmed = lines[i].rstrip("\r\n")
+        if trimmed and trimmed.replace("-", "") == "":
+            blank_count = 0
+            j = i + 1
+            while j < len(lines) and lines[j].rstrip("\r\n") == "":
+                blank_count += 1
+                j += 1
+            if blank_count < 1:
+                ending = detect_line_ending(lines[i])
+                lines.insert(i + 1, ending)
+                fixed_count += 1
+                i += 1 + 1
+            elif blank_count > 1:
+                excess = blank_count - 1
+                del lines[i + 1 : i + 1 + excess]
+                fixed_count += excess
+                i += 1 + 1
+            else:
+                i += 1 + blank_count
+        else:
+            i += 1
+
     with open(file_path, "w", encoding="UTF8") as file:
         file.writelines(lines)
-
-    print(f"Fixed {fixed_count} underline line(s) in: {file_path}")
 
 
 def build_parser():

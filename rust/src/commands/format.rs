@@ -77,10 +77,73 @@ pub fn run(file_path: &Path) -> Result<(), String> {
         }
     }
 
+    // Ensure exactly 2 blank lines after a `===` title underline.
+    let mut i = 0;
+    while i < lines.len() {
+        let trimmed = lines[i].trim_end_matches(['\r', '\n']);
+        if !trimmed.is_empty() && trimmed.chars().all(|c| c == '=') {
+            // Count blank lines immediately following the underline.
+            let mut blank_count = 0;
+            let mut j = i + 1;
+            while j < lines.len() && lines[j].trim_end_matches(['\r', '\n']).is_empty() {
+                blank_count += 1;
+                j += 1;
+            }
+            if blank_count < 2 {
+                let ending = detect_line_ending(&lines[i]);
+                let blank_line = format!("{}", ending);
+                let needed = 2 - blank_count;
+                for k in 0..needed {
+                    lines.insert(i + 1 + k, blank_line.clone());
+                }
+                fixed_count += needed;
+                i += 1 + needed + blank_count;
+            } else if blank_count > 2 {
+                let excess = blank_count - 2;
+                lines.drain(i + 1..i + 1 + excess);
+                fixed_count += excess;
+                i += 1 + 2;
+            } else {
+                i += 1 + blank_count;
+            }
+        } else {
+            i += 1;
+        }
+    }
+
+    // Ensure exactly 1 blank line after a `---` section title underline.
+    let mut i = 0;
+    while i < lines.len() {
+        let trimmed = lines[i].trim_end_matches(['\r', '\n']);
+        if !trimmed.is_empty() && trimmed.chars().all(|c| c == '-') {
+            let mut blank_count = 0;
+            let mut j = i + 1;
+            while j < lines.len() && lines[j].trim_end_matches(['\r', '\n']).is_empty() {
+                blank_count += 1;
+                j += 1;
+            }
+            if blank_count < 1 {
+                let ending = detect_line_ending(&lines[i]);
+                let blank_line = format!("{}", ending);
+                lines.insert(i + 1, blank_line);
+                fixed_count += 1;
+                i += 2;
+            } else if blank_count > 1 {
+                let excess = blank_count - 1;
+                lines.drain(i + 1..i + 1 + excess);
+                fixed_count += excess;
+                i += 2;
+            } else {
+                i += 1 + blank_count;
+            }
+        } else {
+            i += 1;
+        }
+    }
+
     fs::write(file_path, lines.concat())
         .map_err(|e| format!("failed to write '{}': {}", file_path.display(), e))?;
 
-    println!("Fixed {} underline line(s) in: {}", fixed_count, file_path.display());
     Ok(())
 }
 
