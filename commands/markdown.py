@@ -29,11 +29,42 @@ def convert_to_markdown(input_file, output_file, preview=False):
     output_lines = []
     preview_lines = {} if preview else None
 
+    # I. Pre-process lines
+    # Remove trailing newlines and carriage returns
     p = 0
     while p < len(lines):
         lines[p] = lines[p].rstrip("\n").rstrip("\r")
         p += 1
 
+    # mark HTML blocks with ###HTML###
+    VOID_ELEMENTS = {
+        "div",
+        "img",
+    }
+    p = 0
+    while p < len(lines):
+        line = lines[p]
+        m = re.match(r"^<([a-zA-Z][a-zA-Z0-9]*)", line)
+        if m:
+            tag = m.group(1).lower()
+            if tag in VOID_ELEMENTS:
+                lines[p] = "###HTML###" + lines[p]
+                p += 1
+                continue
+            depth = 0
+            while p < len(lines):
+                l = lines[p]
+                depth += len(re.findall(rf"<{tag}(?:\s|>)", l, re.IGNORECASE))
+                depth -= len(re.findall(rf"</{tag}\s*>", l, re.IGNORECASE))
+                depth -= len(re.findall(rf"<{tag}[^>]*/>", l, re.IGNORECASE))
+                lines[p] = "###HTML###" + lines[p]
+                p += 1
+                if depth <= 0:
+                    break
+            continue
+        p += 1
+
+    # II. Process lines
     p = 0
     while p < len(lines):
         line_orig = lines[p]
@@ -57,7 +88,13 @@ def convert_to_markdown(input_file, output_file, preview=False):
         output_line = ""
         add_2_spaces = True
 
-        if not line:
+        if line_orig.startswith("###HTML###"):
+            output_line = line_orig[len("###HTML###") :]
+            add_2_spaces = False
+            if preview:
+                actions.append("do_nothing,html_block")
+
+        elif not line:
             output_line = ""
 
         elif (

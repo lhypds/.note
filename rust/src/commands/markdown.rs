@@ -53,18 +53,129 @@ fn trim_crlf(s: &str) -> String {
     s.trim_end_matches(['\n', '\r']).to_string()
 }
 
+const HTML_PREFIX: &str = "###HTML###";
+
+/// Returns the lowercase tag name if `line` starts with `<tagname`.
+fn html_tag_at_start(line: &str) -> Option<String> {
+    let lower = line.to_lowercase();
+    if !lower.starts_with('<') {
+        return None;
+    }
+    let tag: String = lower[1..]
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric())
+        .collect();
+    if tag.is_empty() {
+        return None;
+    }
+    Some(tag)
+}
+
+/// Count occurrences of `<tag>` or `<tag ` (opening tags) in `line`, case-insensitive.
+fn count_open_tags(line: &str, tag: &str) -> usize {
+    let lower = line.to_lowercase();
+    let tag = tag.to_lowercase();
+    let mut count = 0usize;
+    let mut i = 0usize;
+    while i < lower.len() {
+        if lower[i..].starts_with('<') {
+            let after_lt = &lower[i + 1..];
+            if after_lt.starts_with(&tag) {
+                let after_tag = &after_lt[tag.len()..];
+                if after_tag.starts_with(|c: char| c == '>' || c.is_whitespace()) {
+                    count += 1;
+                }
+            }
+        }
+        i += 1;
+    }
+    count
+}
+
+/// Count occurrences of `</tag>` (with optional whitespace before `>`) in `line`, case-insensitive.
+fn count_close_tags(line: &str, tag: &str) -> usize {
+    let lower = line.to_lowercase();
+    let tag = tag.to_lowercase();
+    let prefix = format!("</{}" , tag);
+    let mut count = 0usize;
+    let mut i = 0usize;
+    while i < lower.len() {
+        if lower[i..].starts_with(&prefix) {
+            let after = &lower[i + prefix.len()..];
+            if after.trim_start_matches(|c: char| c.is_whitespace()).starts_with('>') {
+                count += 1;
+            }
+        }
+        i += 1;
+    }
+    count
+}
+
+/// Count self-closing occurrences of `<tag ... />` in `line`, case-insensitive.
+fn count_self_closing_tags(line: &str, tag: &str) -> usize {
+    let lower = line.to_lowercase();
+    let tag = tag.to_lowercase();
+    let open = format!("<{}", tag);
+    let mut count = 0usize;
+    let mut i = 0usize;
+    while i < lower.len() {
+        if lower[i..].starts_with(&open) {
+            let after = &lower[i + open.len()..];
+            if after.starts_with(|c: char| c == '/' || c == '>' || c.is_whitespace()) {
+                if let Some(end) = lower[i..].find('>') {
+                    if lower[i..i + end + 1].ends_with("/>") {
+                        count += 1;
+                    }
+                }
+            }
+        }
+        i += 1;
+    }
+    count
+}
+
 pub fn run(input_file: &Path, output_file: &Path, preview: bool) -> Result<(), String> {
     println!("{}", input_file.display());
 
     let content = fs::read_to_string(input_file)
         .map_err(|e| format!("failed to read '{}': {}", input_file.display(), e))?;
 
-    let lines: Vec<String> = if content.is_empty() {
+    // I. Pre-process lines
+    // Remove trailing newlines and carriage returns, and store lines in a vector
+    let mut lines: Vec<String> = if content.is_empty() {
         Vec::new()
     } else {
         content.lines().map(trim_crlf).collect()
     };
 
+    // Mark HTML blocks with ###HTML###
+    let void_elements = ["div", "img"];
+    let mut p = 0usize;
+    while p < lines.len() {
+        if let Some(tag) = html_tag_at_start(&lines[p]) {
+            if void_elements.contains(&tag.as_str()) {
+                lines[p] = format!("{}{}", HTML_PREFIX, lines[p]);
+                p += 1;
+            } else {
+                let mut depth: i32 = 0;
+                while p < lines.len() {
+                    let l = lines[p].clone();
+                    depth += count_open_tags(&l, &tag) as i32;
+                    depth -= count_close_tags(&l, &tag) as i32;
+                    depth -= count_self_closing_tags(&l, &tag) as i32;
+                    lines[p] = format!("{}{}", HTML_PREFIX, lines[p]);
+                    p += 1;
+                    if depth <= 0 {
+                        break;
+                    }
+                }
+            }
+        } else {
+            p += 1;
+        }
+    }
+
+    // II. Process lines
     let mut output_lines: Vec<String> = Vec::with_capacity(lines.len());
     let mut preview_lines: Vec<String> = Vec::new();
 
@@ -93,7 +204,13 @@ pub fn run(input_file: &Path, output_file: &Path, preview: bool) -> Result<(), S
         let mut output_line = String::new();
         let mut add_2_spaces = true;
 
-        if line.is_empty() {
+        if line_orig.starts_with(HTML_PREFIX) {
+            output_line = line_orig[HTML_PREFIX.len()..].to_string();
+            add_2_spaces = false;
+            if preview {
+                actions.push("do_nothing,html_block".to_string());
+            }
+        } else if line.is_empty() {
             output_line.clear();
 
         } else if p < lines.len() - 1
