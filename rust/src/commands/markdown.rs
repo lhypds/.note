@@ -129,7 +129,7 @@ fn count_self_closing_tags(line: &str, tag: &str) -> usize {
                 }
             }
         }
-        i += 1;
+        i += lower[i..].chars().next().map_or(1, |c| c.len_utf8());
     }
     count
 }
