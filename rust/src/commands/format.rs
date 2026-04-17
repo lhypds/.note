@@ -52,8 +52,11 @@ pub fn run(file_path: &Path) -> Result<(), String> {
     };
 
     let mut fixed_count = 0;
-    let max_start = if lines.len() > 3 { lines.len() - 3 } else { 0 };
 
+    // Fix underline length
+    // for title or section (`===` or `---`)
+    // the underline line must be exactly the same length as the title line.
+    let max_start = if lines.len() > 3 { lines.len() - 3 } else { 0 };
     for i in 0..max_start {
         let line0 = lines[i].trim_end_matches(['\r', '\n']).to_string();
         let line1 = lines[i + 1].trim_end_matches(['\r', '\n']).to_string();

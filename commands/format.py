@@ -34,8 +34,11 @@ def format_note(file_path):
         lines = file.readlines()
 
     fixed_count = 0
-    max_start = len(lines) - 3
 
+    # Fix underline length
+    # for title or section (`===` or `---`)
+    # the underline line must be exactly the same length as the title line.
+    max_start = len(lines) - 3
     for i in range(max_start):
         line0 = lines[i].rstrip("\r\n")
         line1 = lines[i + 1].rstrip("\r\n")
@@ -63,9 +66,9 @@ def format_note(file_path):
             lines[i + 2] = new_line
             fixed_count += 1
 
-    # Normalize blank lines around underlines:
-    #   `===` title      : exactly 2 blank lines after
-    #   `---` section    : exactly 2 blank lines before the title, exactly 1 after
+    # Normalize blank lines around underlines
+    # 1. `===` title      : exactly 2 blank lines after
+    # 2. `---` section    : exactly 2 blank lines before the title, exactly 1 after
     i = 0
     while i < len(lines):
         trimmed = lines[i].rstrip("\r\n")
