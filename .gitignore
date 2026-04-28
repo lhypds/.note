@@ -1,6 +1,5 @@
 .DS_Store
 .vscode
-.env
 *.json
 .venv/
 
@@ -16,3 +15,5 @@ notemd
 
 release/
 updates/
+
+.noterc

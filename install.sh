@@ -7,20 +7,20 @@ ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BIN_DIR="/usr/local/bin"
 LIB_DIR="/usr/local/lib/note"
 
-# ── OS check ────────────────────────────────────────────────────────────────
+# ---- OS check ─────────────────────────────────────────────────────-
 OS="$(uname -s)"
 if [ "$OS" != "Darwin" ]; then
     echo "Error: this installer currently supports macOS only."
     exit 1
 fi
 
-# ── Check executable exists ──────────────────────────────────────────────────
+# ---- Check executable exists ───────────────────────────────────────
 if [ ! -f "$ROOT_DIR/note" ]; then
     echo "Abort: 'note' executable not found in $ROOT_DIR."
     exit 1
 fi
 
-# ── Detect variant from executable ──────────────────────────────────────────
+# ---- Detect variant from executable ────────────────────────────────
 VERSION_OUTPUT="$(cd "$ROOT_DIR" && ./note --version)"
 
 if echo "$VERSION_OUTPUT" | grep -q "(rust)"; then
@@ -34,7 +34,7 @@ fi
 
 echo "Detected build type: $VARIANT"
 
-# ── Install ───────────────────────────────────────────────────────────────
+# ---- Install ───────────────────────────────────────────────────────
 echo "Installing \`note\` ($VARIANT) …"
 
 if [ "$VARIANT" = "rust" ]; then
@@ -57,5 +57,17 @@ elif [ "$VARIANT" = "python" ]; then
     echo "Symlinked:        $BIN_DIR/note -> $LIB_DIR/note"
 fi
 
+# ---- .noterc setup ─────────────────────────────────────────────────────
+USER_HOME="$(eval echo ~${SUDO_USER:-$USER})"
+NOTERC_PATH="$USER_HOME/.noterc"
+if [ ! -f "$NOTERC_PATH" ]; then
+    echo "Creating .noterc file at $NOTERC_PATH …"
+    echo "notePath=" > "$NOTERC_PATH"
+    echo ".noterc file created. Please update it with your configuration if needed."
+else
+    echo ".noterc file already exists at $NOTERC_PATH."
+fi
+
 echo ""
 echo "\`note\` executable has been installed to \`$BIN_DIR/note\`."
+echo ".noterc file is located at \`$NOTERC_PATH\`."

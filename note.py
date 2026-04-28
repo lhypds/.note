@@ -4,6 +4,7 @@ import sys
 from commands import create as create_command
 from commands import format as format_command
 from commands import markdown as markdown_command
+from commands import search as search_command
 from commands import update as update_command
 
 _VERSION_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "VERSION")
@@ -12,6 +13,10 @@ VERSION = open(_VERSION_FILE).read().strip()
 HELP = """Usage: note <command> [options]
 
 Commands:
+  search    Search note content using fzf across paths in ~/.noterc.
+
+            note search
+
   create    Create a new note file.
 
             note create <name> [-d <directory>]
@@ -66,6 +71,10 @@ def main(argv=None):
         print(f"v{VERSION} (python)")
         return
 
+    if command == "search":
+        search_command.main()
+        return
+
     if command == "create":
         create_command.main(command_args)
         return
@@ -81,8 +90,6 @@ def main(argv=None):
     if command == "update":
         update_command.main(command_args)
         return
-
-    format_command.main(argv)
 
 
 if __name__ == "__main__":

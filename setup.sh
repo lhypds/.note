@@ -32,15 +32,6 @@ pip install --upgrade pip
 echo "Installing requirements..."
 pip install -r requirements.txt
 
-# Setup .env file
-if [ ! -f ".env" ]; then
-    echo "Creating .env file from .env.example..."
-    cp .env.example .env
-    echo ".env file created. Please update it with your configuration if needed."
-else
-    echo ".env file already exists."
-fi
-
 echo ""
 echo "✓ Setup complete!"
 echo "To activate the virtual environment, run: source .venv/bin/activate"
