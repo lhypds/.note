@@ -57,6 +57,17 @@ elif [ "$VARIANT" = "python" ]; then
     echo "Symlinked:        $BIN_DIR/note -> $LIB_DIR/note"
 fi
 
+# ---- fzf ───────────────────────────────────────────────────────────────────
+if command -v fzf &>/dev/null; then
+    echo "fzf already installed."
+elif command -v brew &>/dev/null; then
+    echo "Installing fzf via Homebrew …"
+    brew install fzf
+else
+    echo "Warning: fzf not found and Homebrew is not available."
+    echo "Please install fzf manually (https://github.com/junegunn/fzf) to use \`note search\`."
+fi
+
 # ---- .noterc setup ─────────────────────────────────────────────────────
 USER_HOME="$(eval echo ~${SUDO_USER:-$USER})"
 NOTERC_PATH="$USER_HOME/.noterc"

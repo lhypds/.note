@@ -3,6 +3,10 @@ mod commands;
 const HELP: &str = "Usage: note <command> [options]
 
 Commands:
+  search    Search note content using fzf across paths in ~/.noterc.
+
+            note search
+
   create    Create a new note file.
 
             note create <name> [-d <directory>]
@@ -54,6 +58,7 @@ fn main() {
     match command {
         "-h" | "--help" => println!("{}", HELP),
         "-v" | "--version" => println!("v{} (rust)", VERSION),
+        "search" => commands::search::main(command_args),
         "format" => commands::format::main(command_args),
         "markdown" => commands::markdown::main(command_args),
         "create" => commands::create::main(command_args),

@@ -34,6 +34,22 @@ Release
 `release.sh` to build `dot_note.zip` to `release` folder.
 
 
+command: search
+---------------
+
+`search` - Search note content using fzf.  
+`note search`  
+Opens an interactive fzf session to search text inside all note files.
+
+Reads paths from `~/.noterc` under the `notePath` key (semicolon-separated):  
+```
+notePath=~/Dropbox/Note;~/Dropbox/Note.video;
+```
+
+Requires `fzf` to be installed (`brew install fzf`).  
+Selecting a file opens it with the system default application.
+
+
 command: create
 ---------------
 
