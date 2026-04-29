@@ -37,7 +37,7 @@ Release
 command: search
 ---------------
 
-`search` - Search note content using fzf.  
+`search` - Search note content using [fzf](https://github.com/junegunn/fzf).  
 `note search`  
 Opens an interactive fzf session to search text inside all note files.
 
