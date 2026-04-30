@@ -25,7 +25,8 @@ Commands:
               <name>                  Basename of the note file.
                                      e.g. 'ABC Note' creates 'ABC Note.txt'.
             Options:
-              -d, --directory <dir>   Directory to create the file in. Default: .
+              -d, --directory <dir>   Directory to create the file in.
+                                     Default: first notePath in ~/.noterc.
 
   format    Fix section underline lengths in a note file.
 

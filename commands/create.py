@@ -5,6 +5,21 @@ import sys
 import unicodedata
 
 
+def get_main_note_path():
+    noterc = os.path.expanduser("~/.noterc")
+    if not os.path.exists(noterc):
+        return None
+    with open(noterc, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("notePath="):
+                value = line[len("notePath="):]
+                first = value.split(";")[0].strip()
+                if first:
+                    return os.path.expanduser(first)
+    return None
+
+
 def display_width(text):
     width = 0
     for ch in text:
@@ -51,10 +66,10 @@ def build_parser():
         help="Basename of the note file (e.g. 'ABC Note' creates 'ABC Note.txt').",
     )
     parser.add_argument(
-        "--directory",
         "-d",
-        default=".",
-        help="Directory to create the note in. Defaults to current directory.",
+        "--directory",
+        default=None,
+        help="Directory to create the note in. Defaults to the first notePath in ~/.noterc.",
     )
     return parser
 
@@ -63,7 +78,12 @@ def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    create_note(args.name, args.directory)
+    if args.directory is not None:
+        directory = args.directory
+    else:
+        directory = get_main_note_path() or "."
+
+    create_note(args.name, directory)
 
 
 if __name__ == "__main__":
