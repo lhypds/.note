@@ -9,8 +9,10 @@ LIB_DIR="/usr/local/lib/note"
 
 # ---- OS check ─────────────────────────────────────────────────────-
 OS="$(uname -s)"
-if [ "$OS" != "Darwin" ]; then
-    echo "Error: this installer currently supports macOS only."
+if [ "$OS" = "Linux" ]; then
+    echo "Warning: Linux support is experimental. Proceed with caution."
+elif [ "$OS" != "Darwin" ]; then
+    echo "Error: unsupported OS '$OS'. This installer supports macOS and Linux (experimental)."
     exit 1
 fi
 
@@ -63,8 +65,21 @@ if command -v fzf &>/dev/null; then
 elif command -v brew &>/dev/null; then
     echo "Installing fzf via Homebrew …"
     brew install fzf
+elif [ "$OS" = "Linux" ]; then
+    if command -v apt-get &>/dev/null; then
+        echo "Installing fzf via apt …"
+        sudo apt-get install -y fzf
+    elif command -v dnf &>/dev/null; then
+        echo "Installing fzf via dnf …"
+        sudo dnf install -y fzf
+    elif command -v pacman &>/dev/null; then
+        echo "Installing fzf via pacman …"
+        sudo pacman -S --noconfirm fzf
+    else
+        echo "Warning: fzf not found. Please install fzf manually (https://github.com/junegunn/fzf) to use \`note search\`."
+    fi
 else
-    echo "Warning: fzf not found and Homebrew is not available."
+    echo "Warning: fzf not found and no supported package manager is available."
     echo "Please install fzf manually (https://github.com/junegunn/fzf) to use \`note search\`."
 fi
 
