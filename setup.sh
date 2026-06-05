@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Setup script for note-markdown project
+# Setup script for .note project
 # Installs requirements and configures environment
 
 set -e  # Exit on error
 
-echo "Setting up note-markdown project..."
+echo "Setting up .note project..."
 
 # Check if running on macOS or Linux
 if [[ "$OSTYPE" == "darwin"* ]]; then
