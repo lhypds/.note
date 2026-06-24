@@ -1,10 +1,33 @@
 use std::fs;
+use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::process::Command;
 use unicode_width::UnicodeWidthStr;
 
 fn display_width(text: &str) -> usize {
     text.width()
+}
+
+fn get_main_note_path() -> Option<String> {
+    let noterc = dirs::home_dir()?.join(".noterc");
+    let file = fs::File::open(noterc).ok()?;
+    for line in BufReader::new(file).lines().flatten() {
+        if let Some(value) = line.strip_prefix("notePath=") {
+            let first = value.split(';').next().unwrap_or("").trim();
+            if !first.is_empty() {
+                let expanded = if first.starts_with('~') {
+                    let home = dirs::home_dir()?;
+                    home.join(first.trim_start_matches("~/"))
+                        .to_string_lossy()
+                        .into_owned()
+                } else {
+                    first.to_string()
+                };
+                return Some(expanded);
+            }
+        }
+    }
+    None
 }
 
 pub fn run(name: &str, directory: &str) -> Result<(), String> {
@@ -89,6 +112,12 @@ pub fn main(argv: &[String]) {
             std::process::exit(1);
         }
     };
+
+    if directory == "." {
+        if let Some(note_path) = get_main_note_path() {
+            directory = note_path;
+        }
+    }
 
     if let Err(e) = run(&name, &directory) {
         eprintln!("Error: {}", e);
