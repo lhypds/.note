@@ -92,6 +92,8 @@ def main(argv=None):
         update_command.main(command_args)
         return
 
+    print(f"note: unknown command '{command}'. Run 'note --help' for usage.")
+
 
 if __name__ == "__main__":
     main()

@@ -63,6 +63,6 @@ fn main() {
         "markdown" => commands::markdown::main(command_args),
         "create" => commands::create::main(command_args),
         "update" => commands::update::main(command_args),
-        _ => {}
+        _ => eprintln!("note: unknown command '{}'. Run 'note --help' for usage.", command),
     }
 }
