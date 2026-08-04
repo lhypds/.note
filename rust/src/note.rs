@@ -7,6 +7,11 @@ Commands:
 
             note search
 
+  open      Search note names using fzf across paths in ~/.noterc,
+            then open the selected file with the system default application.
+
+            note open
+
   create    Create a new note file.
 
             note create <name> [-d <directory>]
@@ -59,6 +64,7 @@ fn main() {
         "-h" | "--help" => println!("{}", HELP),
         "-v" | "--version" => println!("v{} (rust)", VERSION),
         "search" => commands::search::main(command_args),
+        "open" => commands::open::main(command_args),
         "format" => commands::format::main(command_args),
         "markdown" => commands::markdown::main(command_args),
         "create" => commands::create::main(command_args),

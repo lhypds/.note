@@ -4,6 +4,7 @@ import sys
 from commands import create as create_command
 from commands import format as format_command
 from commands import markdown as markdown_command
+from commands import open as open_command
 from commands import search as search_command
 from commands import update as update_command
 
@@ -16,6 +17,11 @@ Commands:
   search    Search note content using fzf across paths in ~/.noterc.
 
             note search
+
+  open      Search note names using fzf across paths in ~/.noterc,
+            then open the selected file with the system default application.
+
+            note open
 
   create    Create a new note file.
 
@@ -74,6 +80,10 @@ def main(argv=None):
 
     if command == "search":
         search_command.main()
+        return
+
+    if command == "open":
+        open_command.main()
         return
 
     if command == "create":

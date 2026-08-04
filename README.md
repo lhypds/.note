@@ -50,6 +50,19 @@ Requires `fzf` to be installed (`brew install fzf`).
 Selecting a file opens it with the system default application.
 
 
+command: open
+-------------
+
+`open` - Search note names using [fzf](https://github.com/junegunn/fzf).  
+`note open`  
+Opens an interactive fzf session to fuzzy search note file names (not content).
+
+Reads paths from `~/.noterc` under the `notePath` key, same as `search`.
+
+Requires `fzf` to be installed (`brew install fzf`).  
+Selecting a file opens it with the system default application.
+
+
 command: create
 ---------------
 
