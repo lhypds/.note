@@ -43,7 +43,8 @@ def main():
 
     quoted = " ".join(f"'{p}'" for p in existing)
     reload_cmd = (
-        f"grep -r --include='*.txt' -l {{q}} {quoted} 2>/dev/null || true"
+        f"(grep -r --include='*.txt' -l {{q}} {quoted} 2>/dev/null; "
+        f"find {quoted} -type f -iname '*.txt' -iname '*'{{q}}'*' 2>/dev/null) | sort -u"
     )
 
     initial = subprocess.run(
@@ -57,9 +58,9 @@ def main():
         "--disabled",
         "--query", "",
         "--bind", f"change:reload:{reload_cmd}",
-        "--preview", "grep -n --color=always {q} {}",
+        "--preview", "grep -n --color=always {q} {} || cat {}",
         "--preview-window", "right:60%:wrap",
-        "--header", "Type to search note content",
+        "--header", "Type to search note content or name",
     ]
 
     try:

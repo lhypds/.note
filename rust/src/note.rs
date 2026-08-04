@@ -3,7 +3,7 @@ mod commands;
 const HELP: &str = "Usage: note <command> [options]
 
 Commands:
-  search    Search note content using fzf across paths in ~/.noterc.
+  search    Search note content and note names using fzf across paths in ~/.noterc.
 
             note search
 

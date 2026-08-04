@@ -97,8 +97,9 @@ pub fn main(_argv: &[String]) {
     let quoted_str = quoted.join(" ");
 
     let reload_cmd = format!(
-        "grep -r --include='*.txt' -l {{q}} {} 2>/dev/null || true",
-        quoted_str
+        "(grep -r --include='*.txt' -l {{q}} {} 2>/dev/null; \
+find {} -type f -iname '*.txt' -iname '*'{{q}}'*' 2>/dev/null) | sort -u",
+        quoted_str, quoted_str
     );
 
     let initial_files = collect_txt_files(&existing);
@@ -120,9 +121,9 @@ pub fn main(_argv: &[String]) {
             "--disabled",
             "--query", "",
             "--bind", &format!("change:reload:{}", reload_cmd),
-            "--preview", "grep -n --color=always {q} {}",
+            "--preview", "grep -n --color=always {q} {} || cat {}",
             "--preview-window", "right:60%:wrap",
-            "--header", "Type to search note content",
+            "--header", "Type to search note content or name",
         ])
         .stdin(Stdio::piped())
         .stdout(tmp_file)

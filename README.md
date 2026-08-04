@@ -37,9 +37,9 @@ Release
 command: search
 ---------------
 
-`search` - Search note content using [fzf](https://github.com/junegunn/fzf).  
+`search` - Search note content and note names using [fzf](https://github.com/junegunn/fzf).  
 `note search`  
-Opens an interactive fzf session to search text inside all note files.
+Opens an interactive fzf session to search text inside all note files, as well as note file names.
 
 Reads paths from `~/.noterc` under the `notePath` key (semicolon-separated):  
 ```
