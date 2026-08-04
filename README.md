@@ -39,11 +39,11 @@ commands
 
 | Command    | Usage                                       | Description |
 |------------|----------------------------------------------|-------------|
+| `format`   | `note format "ABC Note.txt"`                  | Fix section underline lengths in the note file. See [doc](./doc) to set up Format on Save for VS Code or Sublime Text. |
 | `search`   | `note search`                                 | Search note content and note names interactively using fzf. Selecting a file opens it with the system default application. |
 | `open`     | `note open`                                   | Fuzzy search note file names (not content) using fzf, then open the selected file with the system default application. |
-| `delete`   | `note delete`                                  | Fuzzy search note file names using fzf, then delete the selected file after `y/N` confirmation. |
 | `create`   | `note create "ABC" [-d\|--directory <dir>]`   | Create a new note file `ABC Note.txt`. `-d`/`--directory` sets the target directory (defaults to the current directory). |
-| `format`   | `note format "ABC Note.txt"`                  | Fix section underline lengths in the note file. See [doc](./doc) to set up Format on Save for VS Code or Sublime Text. |
+| `delete`   | `note delete`                                  | Fuzzy search note file names using fzf, then delete the selected file after `y/N` confirmation. |
 | `markdown` | `note markdown "ABC Note.txt" [--preview]`    | Convert the note to Markdown, output to a `.markdown` folder. `--preview` also generates a preview action log file. |
 
 `search`, `open`, and `delete` require [fzf](https://github.com/junegunn/fzf) to be installed (`brew install fzf`), and read note paths from `~/.noterc` under the `notePath` key (semicolon-separated):  
