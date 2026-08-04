@@ -12,13 +12,18 @@ Commands:
 
             note open
 
+  delete    Search note names using fzf across paths in ~/.noterc,
+            then delete the selected file after confirmation.
+
+            note delete
+
   create    Create a new note file.
 
-            note create <name> [-d <directory>]
+            note create <topic> [-d <directory>]
 
             Arguments:
-              <name>                  Basename of the note file.
-                                     e.g. 'ABC Note' creates 'ABC Note.txt'.
+              <topic>                 Topic of the note.
+                                     e.g. 'ABC' creates 'ABC Note.txt'.
             Options:
               -d, --directory <dir>   Directory to create the file in. Default: .
 
@@ -65,6 +70,7 @@ fn main() {
         "-v" | "--version" => println!("v{} (rust)", VERSION),
         "search" => commands::search::main(command_args),
         "open" => commands::open::main(command_args),
+        "delete" => commands::delete::main(command_args),
         "format" => commands::format::main(command_args),
         "markdown" => commands::markdown::main(command_args),
         "create" => commands::create::main(command_args),

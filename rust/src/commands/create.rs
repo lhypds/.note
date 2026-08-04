@@ -30,21 +30,15 @@ fn get_main_note_path() -> Option<String> {
     None
 }
 
-pub fn run(name: &str, directory: &str) -> Result<(), String> {
-    let file_name = format!("{}.txt", name);
+pub fn run(topic: &str, directory: &str) -> Result<(), String> {
+    let title = format!("{} Note", topic);
+    let file_name = format!("{}.txt", title);
     let file_path = PathBuf::from(directory).join(&file_name);
 
-    let title = name;
-    let title_underline = "=".repeat(display_width(title));
+    let title_underline = "=".repeat(display_width(&title));
 
-    // Support `note`
-    let section_block = if name.ends_with("Note") {
-        let section = name[..name.len() - 4].trim_end();
-        let section_underline = "-".repeat(display_width(section));
-        format!("{}\n{}\n\n\n", section, section_underline)
-    } else {
-        String::new()
-    };
+    let section_underline = "-".repeat(display_width(topic));
+    let section_block = format!("{}\n{}\n\n", topic, section_underline);
 
     let content = format!(
         "\n{}\n{}\n\n\n{}",
@@ -79,7 +73,7 @@ pub fn run(name: &str, directory: &str) -> Result<(), String> {
 }
 
 pub fn main(argv: &[String]) {
-    let mut name: Option<String> = None;
+    let mut topic: Option<String> = None;
     let mut directory = ".".to_string();
 
     let mut i = 0usize;
@@ -95,7 +89,7 @@ pub fn main(argv: &[String]) {
                 }
             }
             arg if !arg.starts_with('-') => {
-                name = Some(arg.to_string());
+                topic = Some(arg.to_string());
                 i += 1;
             }
             arg => {
@@ -105,10 +99,10 @@ pub fn main(argv: &[String]) {
         }
     }
 
-    let name = match name {
-        Some(n) => n,
+    let topic = match topic {
+        Some(t) => t,
         None => {
-            eprintln!("Error: no name provided.");
+            eprintln!("Error: no topic provided.");
             std::process::exit(1);
         }
     };
@@ -119,7 +113,7 @@ pub fn main(argv: &[String]) {
         }
     }
 
-    if let Err(e) = run(&name, &directory) {
+    if let Err(e) = run(&topic, &directory) {
         eprintln!("Error: {}", e);
         std::process::exit(1);
     }

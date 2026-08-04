@@ -2,6 +2,7 @@ import os
 import sys
 
 from commands import create as create_command
+from commands import delete as delete_command
 from commands import format as format_command
 from commands import markdown as markdown_command
 from commands import open as open_command
@@ -23,13 +24,18 @@ Commands:
 
             note open
 
+  delete    Search note names using fzf across paths in ~/.noterc,
+            then delete the selected file after confirmation.
+
+            note delete
+
   create    Create a new note file.
 
-            note create <name> [-d <directory>]
+            note create <topic> [-d <directory>]
 
             Arguments:
-              <name>                  Basename of the note file.
-                                     e.g. 'ABC Note' creates 'ABC Note.txt'.
+              <topic>                 Topic of the note.
+                                     e.g. 'ABC' creates 'ABC Note.txt'.
             Options:
               -d, --directory <dir>   Directory to create the file in.
                                      Default: first notePath in ~/.noterc.
@@ -84,6 +90,10 @@ def main(argv=None):
 
     if command == "open":
         open_command.main()
+        return
+
+    if command == "delete":
+        delete_command.main()
         return
 
     if command == "create":

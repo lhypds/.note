@@ -63,16 +63,29 @@ Requires `fzf` to be installed (`brew install fzf`).
 Selecting a file opens it with the system default application.
 
 
+command: delete
+----------------
+
+`delete` - Search note names using [fzf](https://github.com/junegunn/fzf), then delete.  
+`note delete`  
+Opens an interactive fzf session to fuzzy search note file names (not content).
+
+Reads paths from `~/.noterc` under the `notePath` key, same as `search`.
+
+Requires `fzf` to be installed (`brew install fzf`).  
+Selecting a file asks for `y/N` confirmation before deleting it.
+
+
 command: create
 ---------------
 
 `create` - Create a new note file.  
-`note create "ABC Note"`  
+`note create "ABC"`  
 It will create `ABC Note.txt` in the current directory.
 
 `[-d|--directory]`  
 Specify the directory to create the note in. Defaults to current directory.  
-`note create "ABC Note" --directory path/to/directory`  
+`note create "ABC" --directory path/to/directory`  
 
 
 command: format

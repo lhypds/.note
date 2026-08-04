@@ -28,20 +28,15 @@ def display_width(text):
     return width
 
 
-def create_note(name, directory="."):
-    file_name = f"{name}.txt"
+def create_note(topic, directory="."):
+    title = f"{topic} Note"
+    file_name = f"{title}.txt"
     file_path = os.path.join(directory, file_name)
 
-    title = name
     title_underline = "=" * display_width(title)
 
-    # Support `note`
-    if name.endswith("Note"):
-        section = name[:-5].rstrip()
-        section_underline = "-" * display_width(section)
-        section_block = f"{section}\n{section_underline}\n\n\n"
-    else:
-        section_block = ""
+    section_underline = "-" * display_width(topic)
+    section_block = f"{topic}\n{section_underline}\n\n"
 
     content = f"\n" f"{title}\n" f"{title_underline}\n" f"\n" f"\n" f"{section_block}"
 
@@ -62,8 +57,8 @@ def create_note(name, directory="."):
 def build_parser():
     parser = argparse.ArgumentParser(description="Create a new note file.")
     parser.add_argument(
-        "name",
-        help="Basename of the note file (e.g. 'ABC Note' creates 'ABC Note.txt').",
+        "topic",
+        help="Topic of the note (e.g. 'ABC' creates 'ABC Note.txt').",
     )
     parser.add_argument(
         "-d",
@@ -83,7 +78,7 @@ def main(argv=None):
     else:
         directory = get_main_note_path() or "."
 
-    create_note(args.name, directory)
+    create_note(args.topic, directory)
 
 
 if __name__ == "__main__":
