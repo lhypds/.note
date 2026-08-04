@@ -34,82 +34,22 @@ Release
 `release.sh` to build `dot_note.zip` to `release` folder.
 
 
-command: search
----------------
+commands
+--------
 
-`search` - Search note content and note names using [fzf](https://github.com/junegunn/fzf).  
-`note search`  
-Opens an interactive fzf session to search text inside all note files, as well as note file names.
+| Command    | Usage                                       | Description |
+|------------|----------------------------------------------|-------------|
+| `search`   | `note search`                                 | Search note content and note names interactively using fzf. Selecting a file opens it with the system default application. |
+| `open`     | `note open`                                   | Fuzzy search note file names (not content) using fzf, then open the selected file with the system default application. |
+| `delete`   | `note delete`                                  | Fuzzy search note file names using fzf, then delete the selected file after `y/N` confirmation. |
+| `create`   | `note create "ABC" [-d\|--directory <dir>]`   | Create a new note file `ABC Note.txt`. `-d`/`--directory` sets the target directory (defaults to the current directory). |
+| `format`   | `note format "ABC Note.txt"`                  | Fix section underline lengths in the note file. See [doc](./doc) to set up Format on Save for VS Code or Sublime Text. |
+| `markdown` | `note markdown "ABC Note.txt" [--preview]`    | Convert the note to Markdown, output to a `.markdown` folder. `--preview` also generates a preview action log file. |
 
-Reads paths from `~/.noterc` under the `notePath` key (semicolon-separated):  
+`search`, `open`, and `delete` require [fzf](https://github.com/junegunn/fzf) to be installed (`brew install fzf`), and read note paths from `~/.noterc` under the `notePath` key (semicolon-separated):  
 ```
 notePath=~/Dropbox/Note;~/Dropbox/Note.video;
 ```
-
-Requires `fzf` to be installed (`brew install fzf`).  
-Selecting a file opens it with the system default application.
-
-
-command: open
--------------
-
-`open` - Search note names using [fzf](https://github.com/junegunn/fzf).  
-`note open`  
-Opens an interactive fzf session to fuzzy search note file names (not content).
-
-Reads paths from `~/.noterc` under the `notePath` key, same as `search`.
-
-Requires `fzf` to be installed (`brew install fzf`).  
-Selecting a file opens it with the system default application.
-
-
-command: delete
-----------------
-
-`delete` - Search note names using [fzf](https://github.com/junegunn/fzf), then delete.  
-`note delete`  
-Opens an interactive fzf session to fuzzy search note file names (not content).
-
-Reads paths from `~/.noterc` under the `notePath` key, same as `search`.
-
-Requires `fzf` to be installed (`brew install fzf`).  
-Selecting a file asks for `y/N` confirmation before deleting it.
-
-
-command: create
----------------
-
-`create` - Create a new note file.  
-`note create "ABC"`  
-It will create `ABC Note.txt` in the current directory.
-
-`[-d|--directory]`  
-Specify the directory to create the note in. Defaults to current directory.  
-`note create "ABC" --directory path/to/directory`  
-
-
-command: format
----------------
-
-`format` - Format the note file.  
-`note format "ABC Note.txt"`  
-It will fix section underline lengths in the note file.  
-
-* Format on Save  
-Refer [doc](./doc) to setup `Format on Save` for text editors.  
-Support setup for VS Code and Sublime Text.  
-
-
-command: markdown
------------------
-
-`markdown` - Convert note to Markdown format.  
-`note markdown "ABC Note.txt"`  
-It will convert `ABC Note.txt` to `ABC Note.md`,  
-and output to `.markdown` folder in the current directory.  
-
-`--preview`  
-`note markdown "ABC Note.txt" --preview` will also generate a preview action log file.  
 
 
 tools scripts
