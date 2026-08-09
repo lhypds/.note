@@ -3,7 +3,7 @@
 =====
 
 
-`note` is a format for `txt` files.  
+.note is structured plain text designed to be read directly by humans. Rendering is optional, not required.  
 
 Basiclly it is free to write. There are few rules to follow:  
 - Note file name should be `ABC Note`, `ABC` is the topic.  
