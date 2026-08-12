@@ -1,7 +1,6 @@
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
-use std::process::Command;
 use unicode_width::UnicodeWidthStr;
 
 fn display_width(text: &str) -> usize {
@@ -51,23 +50,7 @@ pub fn run(topic: &str, directory: &str) -> Result<(), String> {
     println!("Created: {}", file_path.display());
 
     // Open the note with the system default application
-    #[cfg(target_os = "macos")]
-    Command::new("open")
-        .arg(&file_path)
-        .spawn()
-        .map_err(|e| format!("failed to open '{}': {}", file_path.display(), e))?;
-
-    #[cfg(target_os = "windows")]
-    Command::new("cmd")
-        .args(["/c", "start", "", &file_path.to_string_lossy()])
-        .spawn()
-        .map_err(|e| format!("failed to open '{}': {}", file_path.display(), e))?;
-
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    Command::new("xdg-open")
-        .arg(&file_path)
-        .spawn()
-        .map_err(|e| format!("failed to open '{}': {}", file_path.display(), e))?;
+    super::opener::open_path(&file_path)?;
 
     Ok(())
 }

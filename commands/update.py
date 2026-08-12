@@ -61,23 +61,24 @@ def get_latest_release():
         sys.exit(1)
 
 
-def check_release_supported(latest_version):
-    """Release archives are built on macOS only.
+def platform_tokens():
+    """Return the (os, arch) tokens release.sh names its archives with."""
+    system = {
+        "Darwin": "macos",
+        "Linux": "linux",
+        "Windows": "windows",
+    }.get(platform.system(), platform.system().lower())
 
-    Downloading them on any other platform yields binaries this host cannot
-    execute, so stop here with build-from-source instructions instead.
-    """
-    system = platform.system()
-    if system == "Darwin":
-        return
+    machine = platform.machine().lower()
+    if machine in ("x86_64", "amd64"):
+        # get.ps1 calls it amd64 on Windows, x86_64 everywhere else.
+        arch = "amd64" if system == "windows" else "x86_64"
+    elif machine in ("aarch64", "arm64"):
+        arch = "arm64"
+    else:
+        arch = machine
 
-    print()
-    print(f"No {system} release artifacts are published for v{latest_version}.")
-    print("Build from source instead:")
-    print(f"  git clone {REPO_URL} && cd .note")
-    print("  ./setup.sh && ./build_py.sh   # or ./build_rs.sh for the Rust build")
-    print("  ./install.sh")
-    sys.exit(1)
+    return system, arch
 
 
 def find_asset_url(assets, filename):
@@ -172,19 +173,33 @@ def main(argv=None):
     print(f"Update available : v{current_version} → v{latest_version}")
 
     # ── 4. Resolve asset filename ─────────────────────────────────────────────
-    check_release_supported(latest_version)
+    variant = "python" if build_type == "python" else "rust"
+    os_token, arch = platform_tokens()
+    tagged = f"dot_note_{variant}_v{latest_version}_{os_token}_{arch}.zip"
 
-    if build_type == "python":
-        asset_filename = f"dot_note_python_v{latest_version}.zip"
-    else:
-        asset_filename = f"dot_note_rust_v{latest_version}.zip"
+    # Releases up to v0.0.22 published one untagged archive, built on Apple
+    # silicon. Fall back to it where it would actually run.
+    candidates = [tagged]
+    if os_token == "macos" and arch == "arm64":
+        candidates.append(f"dot_note_{variant}_v{latest_version}.zip")
 
-    download_url = find_asset_url(release.get("assets", []), asset_filename)
+    assets = release.get("assets", [])
+    asset_filename = download_url = None
+    for name in candidates:
+        url = find_asset_url(assets, name)
+        if url:
+            asset_filename, download_url = name, url
+            break
+
     if not download_url:
-        print(f"Error: release asset '{asset_filename}' not found in latest release.")
-        available = [a["name"] for a in release.get("assets", [])]
+        print(
+            f"Error: release v{latest_version} publishes no {variant} build for "
+            f"{os_token}/{arch} — it should be named '{tagged}'."
+        )
+        available = [a["name"] for a in assets]
         if available:
             print("  Available assets: " + ", ".join(available))
+        print(f"  Build from source instead: {REPO_URL}")
         sys.exit(1)
 
     # ── 5. Create updates directory ───────────────────────────────────────────
@@ -208,8 +223,10 @@ def main(argv=None):
 
     os.chmod(install_sh, 0o755)
     print(f"  Running install.sh ...")
+    # install.sh is POSIX sh, so /bin/sh is enough — distributions that ship no
+    # bash still update.
     result = subprocess.run(
-        ["bash", install_sh],
+        ["sh", install_sh],
         cwd=os.path.dirname(install_sh),
     )
     if result.returncode != 0:

@@ -67,14 +67,9 @@ fn collect_recursive(dir: &Path, files: &mut Vec<String>) {
 }
 
 fn open_file(path: &str) {
-    #[cfg(target_os = "macos")]
-    let _ = Command::new("open").arg(path).spawn();
-
-    #[cfg(target_os = "windows")]
-    let _ = Command::new("cmd").args(["/c", "start", "", path]).spawn();
-
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    let _ = Command::new("xdg-open").arg(path).spawn();
+    if let Err(e) = super::opener::open_path(Path::new(path)) {
+        eprintln!("{}", e);
+    }
 }
 
 pub fn main(_argv: &[String]) {

@@ -1,8 +1,8 @@
 import argparse
 import os
-import subprocess
-import sys
 import unicodedata
+
+from commands import opener
 
 
 def get_main_note_path():
@@ -46,12 +46,7 @@ def create_note(topic, directory="."):
     print(f"Created: {file_path}")
 
     # Open the note with the system default application
-    if sys.platform == "darwin":
-        subprocess.run(["open", file_path])
-    elif sys.platform == "win32":
-        os.startfile(file_path)
-    else:
-        subprocess.run(["xdg-open", file_path])
+    opener.open_file(file_path)
 
 
 def build_parser():

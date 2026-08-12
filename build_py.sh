@@ -3,7 +3,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PYTHON_BIN="$ROOT_DIR/.venv/bin/python"
+# PYTHON_BIN can be overridden to build outside the repo's virtualenv — the
+# Linux cross-build does that, pointing at an interpreter inside its container.
+PYTHON_BIN="${PYTHON_BIN:-$ROOT_DIR/.venv/bin/python}"
 NOTE_ENTRY_FILE="$ROOT_DIR/note.py"
 BUILD_MODE="onedir"
 

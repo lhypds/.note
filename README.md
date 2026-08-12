@@ -14,7 +14,7 @@ Basiclly it is free to write. There are few rules to follow:
 install
 -------
 
-macOS, from the latest release:  
+macOS and Linux, from the latest release:  
 ```sh
 curl -fsSL https://raw.githubusercontent.com/lhypds/.note/main/get.sh | sh
 ```
@@ -31,7 +31,17 @@ curl -fsSL https://raw.githubusercontent.com/lhypds/.note/main/get.sh | sh -s --
 curl -fsSL https://raw.githubusercontent.com/lhypds/.note/main/get.sh | sudo sh   # system-wide
 ```
 
-Release archives are built on Apple silicon. On Linux, on Intel Macs, and on Windows until a Windows build is published, build from source instead — see below — or download a release and run its `install.sh`.  
+Each release publishes one archive per platform and variant, named `dot_note_<variant>_v<version>_<os>_<arch>.zip`:  
+
+| Platform      | rust | python |
+|---------------|------|--------|
+| macOS arm64   | yes  | yes    |
+| Linux x86_64  | yes  | yes    |
+| Windows       | no   | no     |
+
+The Linux rust build is statically linked against musl, so it runs on any distribution including Alpine. The Linux python build is a PyInstaller bundle against glibc 2.31, so it needs Debian 11, Ubuntu 20.04, RHEL 9 or newer.  
+
+On Intel Macs, on Linux arm64, and on Windows, build from source instead — see below — or download a release and run its `install.sh`.  
 
 
 note
@@ -54,7 +64,9 @@ Either python or rust version generates `note` executable.
 Run `note` command with commands.  
 
 Release  
-`release.sh` to build `dot_note.zip` to `release` folder.
+`release.sh` builds every platform archive into the `release` folder and then publishes them with `release_gh.sh`. Run it on macOS: it builds the macOS archives natively and cross-builds the Linux ones in Docker. `--no-linux` skips the Docker step, `--no-publish` stops before GitHub.  
+
+`build_linux.sh` does the Linux cross-build on its own (`--variant rust|python`, `--arch x86_64|arm64`). Docker must be running.
 
 
 commands
@@ -69,10 +81,12 @@ commands
 | `delete`   | `note delete`                                  | Fuzzy search note file names using fzf, then delete the selected file after `y/N` confirmation. |
 | `markdown` | `note markdown "ABC Note.txt" [--preview]`    | Convert the note to Markdown, output to a `.markdown` folder. `--preview` also generates a preview action log file. |
 
-`search`, `open`, and `delete` require [fzf](https://github.com/junegunn/fzf) to be installed (`brew install fzf`), and read note paths from `~/.noterc` under the `notePath` key (semicolon-separated):  
+`search`, `open`, and `delete` require [fzf](https://github.com/junegunn/fzf) to be installed (`brew install fzf`, or your distribution's package manager on Linux), and read note paths from `~/.noterc` under the `notePath` key (semicolon-separated):  
 ```
 notePath=~/Dropbox/Note;~/Dropbox/Note.video;
 ```
+
+Selected files open with the system default application — `open` on macOS, `xdg-open` on Linux. On a headless Linux machine, where there is no `xdg-open`, note falls back to `$VISUAL` and then `$EDITOR`.  
 
 
 tools scripts

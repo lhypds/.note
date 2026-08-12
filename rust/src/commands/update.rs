@@ -9,36 +9,16 @@ const REPO_URL: &str = "https://github.com/lhypds/.note";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-/// Capitalised host OS name, e.g. "linux" → "Linux".
-fn os_display() -> String {
+/// The os/arch tokens release.sh names its archives with.
+fn platform_tokens() -> (&'static str, &'static str) {
     let os = std::env::consts::OS;
-    let mut chars = os.chars();
-    match chars.next() {
-        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-        None => os.to_string(),
-    }
-}
-
-/// Release archives are built on macOS only.
-///
-/// Downloading them on any other platform yields binaries this host cannot
-/// execute, so stop here with build-from-source instructions instead.
-fn check_release_supported(latest_version: &str) {
-    if std::env::consts::OS == "macos" {
-        return;
-    }
-
-    println!();
-    println!(
-        "No {} release artifacts are published for v{}.",
-        os_display(),
-        latest_version
-    );
-    println!("Build from source instead:");
-    println!("  git clone {} && cd .note", REPO_URL);
-    println!("  ./build_rs.sh   # or ./setup.sh && ./build_py.sh for the Python build");
-    println!("  ./install.sh");
-    exit(1);
+    let arch = match (os, std::env::consts::ARCH) {
+        // get.ps1 calls it amd64 on Windows, x86_64 everywhere else.
+        ("windows", "x86_64") => "amd64",
+        (_, "aarch64") => "arm64",
+        (_, other) => other,
+    };
+    (os, arch)
 }
 
 fn get_current_version_and_build() -> (String, String) {
@@ -268,32 +248,42 @@ pub fn main(argv: &[String]) {
     }
 
     // 4. Resolve asset filename
-    check_release_supported(&latest_version);
+    let variant = if build_type == "python" { "python" } else { "rust" };
+    let (os, arch) = platform_tokens();
+    let tagged = format!(
+        "dot_note_{}_v{}_{}_{}.zip",
+        variant, latest_version, os, arch
+    );
 
-    let asset_filename = if build_type == "python" {
-        format!("dot_note_python_v{}.zip", latest_version)
-    } else {
-        format!("dot_note_rust_v{}.zip", latest_version)
-    };
+    // Releases up to v0.0.22 published one untagged archive, built on Apple
+    // silicon. Fall back to it where it would actually run.
+    let mut candidates = vec![tagged.clone()];
+    if os == "macos" && arch == "arm64" {
+        candidates.push(format!("dot_note_{}_v{}.zip", variant, latest_version));
+    }
 
     let empty_assets = serde_json::Value::Array(vec![]);
     let assets = release.get("assets").unwrap_or(&empty_assets);
-    let download_url = find_asset_url(assets, &asset_filename).unwrap_or_else(|| {
-        eprintln!(
-            "Error: release asset '{}' not found in latest release.",
-            asset_filename
-        );
-        if let Some(arr) = assets.as_array() {
-            let names: Vec<&str> = arr
-                .iter()
-                .filter_map(|a| a["name"].as_str())
-                .collect();
-            if !names.is_empty() {
-                eprintln!("  Available assets: {}", names.join(", "));
+    let (asset_filename, download_url) = candidates
+        .iter()
+        .find_map(|name| find_asset_url(assets, name).map(|url| (name.clone(), url)))
+        .unwrap_or_else(|| {
+            eprintln!(
+                "Error: release v{} publishes no {} build for {}/{} — it should be named '{}'.",
+                latest_version, variant, os, arch, tagged
+            );
+            if let Some(arr) = assets.as_array() {
+                let names: Vec<&str> = arr
+                    .iter()
+                    .filter_map(|a| a["name"].as_str())
+                    .collect();
+                if !names.is_empty() {
+                    eprintln!("  Available assets: {}", names.join(", "));
+                }
             }
-        }
-        exit(1);
-    });
+            eprintln!("  Build from source instead: {}", REPO_URL);
+            exit(1);
+        });
 
     // 5. Create updates directory
     let updates_dir = dirs_home().join(".note").join("updates");
@@ -328,7 +318,9 @@ pub fn main(argv: &[String]) {
     }
 
     println!("  Running install.sh ...");
-    let status = Command::new("bash")
+    // install.sh is POSIX sh, so /bin/sh is enough — distributions that ship
+    // no bash still update.
+    let status = Command::new("sh")
         .arg(&install_sh)
         .current_dir(install_sh.parent().unwrap())
         .status()

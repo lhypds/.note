@@ -1,15 +1,32 @@
-#!/bin/bash
+#!/bin/sh
+#
+# Remove `note` from /usr/local, on macOS or Linux.
+#
+# POSIX sh on purpose, to match install.sh: the musl build runs on
+# distributions that ship no bash at all.
 
-set -euo pipefail
+set -eu
 
 BIN_DIR="/usr/local/bin"
 LIB_DIR="/usr/local/lib/note"
 
 # ── OS check ─────────────────────────────────────────────────────────────────
 OS="$(uname -s)"
-if [ "$OS" != "Darwin" ]; then
-    echo "Error: this uninstaller currently supports macOS only."
-    exit 1
+case "$OS" in
+    Darwin|Linux) ;;
+    *)
+        echo "Error: this uninstaller supports macOS and Linux only."
+        exit 1
+        ;;
+esac
+
+# ── Privilege escalation ─────────────────────────────────────────────────────
+# Root shells on Linux often have no sudo installed at all. SUDO is
+# deliberately unquoted where it is used.
+if [ "$(id -u)" -eq 0 ] || ! command -v sudo >/dev/null 2>&1; then
+    SUDO=""
+else
+    SUDO="sudo"
 fi
 
 REMOVED=0
@@ -19,7 +36,7 @@ REMOVED_DATA=0
 
 # Remove binary / symlink from BIN_DIR
 if [ -e "$BIN_DIR/note" ] || [ -L "$BIN_DIR/note" ]; then
-    sudo rm -f "$BIN_DIR/note"
+    $SUDO rm -f "$BIN_DIR/note"
     echo "Removed: $BIN_DIR/note"
     REMOVED=1
     REMOVED_BIN=1
@@ -27,7 +44,7 @@ fi
 
 # Remove Python bundle directory (only present for python installs)
 if [ -d "$LIB_DIR" ]; then
-    sudo rm -rf "$LIB_DIR"
+    $SUDO rm -rf "$LIB_DIR"
     echo "Removed: $LIB_DIR"
     REMOVED=1
     REMOVED_LIB=1

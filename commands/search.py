@@ -2,6 +2,8 @@ import os
 import subprocess
 import sys
 
+from commands import opener
+
 
 def parse_noterc():
     noterc = os.path.expanduser("~/.noterc")
@@ -21,13 +23,7 @@ def parse_noterc():
 
 
 def open_file(path):
-    platform = sys.platform
-    if platform == "darwin":
-        subprocess.run(["open", path])
-    elif platform == "win32":
-        os.startfile(path)  # type: ignore[attr-defined]
-    else:
-        subprocess.run(["xdg-open", path])
+    opener.open_file(path)
 
 
 def main():

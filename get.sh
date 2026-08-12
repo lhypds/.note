@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Install `note` from its latest GitHub release, on macOS.
+# Install `note` from its latest GitHub release, on macOS or Linux.
 #
 #   curl -fsSL https://raw.githubusercontent.com/lhypds/.note/main/get.sh | sh
 #
@@ -131,22 +131,24 @@ rust | python) ;;
 esac
 
 # ── platform ─────────────────────────────────────────────────────────────────
-# Release archives are built on macOS, so they are the only ones worth
-# downloading; everywhere else, building from source is the shorter road.
-os=$(uname -s 2>/dev/null || echo unknown)
-case "$os" in
-Darwin) ;;
+# The os/arch pair picks the release archive; they are the same tokens
+# release.sh names its zips with.
+uname_s=$(uname -s 2>/dev/null || echo unknown)
+case "$uname_s" in
+Darwin) os=macos ;;
+Linux) os=linux ;;
 MINGW* | MSYS* | CYGWIN*)
 	die "on Windows use the PowerShell installer:
     irm https://raw.githubusercontent.com/$REPO/main/get.ps1 | iex"
 	;;
-Linux)
-	die "no Linux release artifacts are published — build from source instead:
-    git clone https://github.com/$REPO.git && cd .note
-    ./build_rs.sh   # or ./setup.sh && ./build_py.sh for the python build
-    ./install.sh"
-	;;
-*) die "unsupported operating system \"$os\" — build from source instead: https://github.com/$REPO" ;;
+*) die "unsupported operating system \"$uname_s\" — build from source instead: https://github.com/$REPO" ;;
+esac
+
+arch=$(uname -m 2>/dev/null || echo unknown)
+case "$arch" in
+amd64 | x86_64) arch=x86_64 ;;
+aarch64 | arm64) arch=arm64 ;;
+*) die "unsupported architecture \"$arch\" — build from source instead: https://github.com/$REPO" ;;
 esac
 
 # ── downloader ───────────────────────────────────────────────────────────────
@@ -228,13 +230,27 @@ if [ "$variant" = python ]; then
 fi
 
 # ── download and verify ──────────────────────────────────────────────────────
-archive=dot_note_${variant}_v${version}.zip
+archive=dot_note_${variant}_v${version}_${os}_${arch}.zip
 base=https://github.com/$REPO/releases/download/v$version
 tmp=$(mktemp -d 2>/dev/null || mktemp -d -t note-install)
 
-echo "get.sh: downloading note $version ($variant build)..."
-http_save "$base/$archive" "$tmp/$archive" ||
-	die "no $archive in release v$version of $REPO — see https://github.com/$REPO/releases"
+echo "get.sh: downloading note $version ($variant build) for $os/$arch..."
+if ! http_save "$base/$archive" "$tmp/$archive" 2>/dev/null; then
+	# Releases up to v0.0.22 published one untagged archive, built on Apple
+	# silicon. Fall back to it where it would actually run.
+	legacy=dot_note_${variant}_v${version}.zip
+	if [ "$os" = macos ] && [ "$arch" = arm64 ] &&
+		http_save "$base/$legacy" "$tmp/$legacy" 2>/dev/null; then
+		archive=$legacy
+	else
+		die "release v$version of $REPO publishes no $variant build for $os/$arch.
+    It should be named $archive — see https://github.com/$REPO/releases
+    Or build it from source:
+      git clone https://github.com/$REPO.git && cd .note
+      ./build_rs.sh   # or ./setup.sh && ./build_py.sh for the python build
+      ./install.sh"
+	fi
+fi
 
 # Releases up to v0.0.22 shipped without checksums; verify when the release has
 # them, and say plainly when it does not rather than implying it was checked.
@@ -265,39 +281,54 @@ mkdir -p "$stage"
 if command -v unzip >/dev/null 2>&1; then
 	unzip -q "$tmp/$archive" -d "$stage" || die "could not unpack $archive"
 else
-	# bsdtar, which is /usr/bin/tar on macOS, reads zip archives too.
-	tar -xf "$tmp/$archive" -C "$stage" || die "could not unpack $archive"
+	# bsdtar, which is /usr/bin/tar on macOS, reads zip archives too. GNU tar,
+	# which is what most Linux boxes have, does not.
+	tar -xf "$tmp/$archive" -C "$stage" ||
+		die "could not unpack $archive — install unzip and re-run."
 fi
 
 bin=$stage/note
 [ -f "$bin" ] || die "$archive contains no note executable"
 
-# ── architecture ─────────────────────────────────────────────────────────────
-# Read the Mach-O header rather than running the binary, so a release built for
-# another architecture reports the reason instead of "Bad CPU type".
-header=$(od -An -tx1 -N8 "$bin" 2>/dev/null | tr -d ' \n')
+# ── os and architecture ──────────────────────────────────────────────────────
+# Read the executable header rather than running the binary, so an archive
+# built for another machine reports the reason instead of "Bad CPU type" or
+# "Exec format error". ELF puts e_machine in a little-endian half at offset 18;
+# Mach-O puts cputype at offset 4.
+header=$(od -An -tx1 -N20 "$bin" 2>/dev/null | tr -d ' \n')
+bin_os=unknown
+bin_arch=unknown
 case "$header" in
-cafebabe* | cafebabf* | bebafeca*) bin_arch=universal ;; # fat binary: holds several
-cffaedfe0c000001*) bin_arch=arm64 ;;
-cffaedfe07000001*) bin_arch=x86_64 ;;
-7f454c46*) die "release v$version contains a Linux build of note, but this machine is macOS" ;;
-*) bin_arch=unknown ;;
+7f454c46*)
+	bin_os=linux
+	case $(echo "$header" | cut -c37-40) in
+	3e00) bin_arch=x86_64 ;;
+	b700) bin_arch=arm64 ;;
+	esac
+	;;
+cafebabe* | cafebabf* | bebafeca*) # fat binary: holds several
+	bin_os=macos
+	bin_arch=$arch
+	;;
+cffaedfe* | cefaedfe* | feedfacf* | feedface*)
+	bin_os=macos
+	case $(echo "$header" | cut -c9-16) in
+	0c000001) bin_arch=arm64 ;;
+	07000001) bin_arch=x86_64 ;;
+	esac
+	;;
 esac
 
-arch=$(uname -m 2>/dev/null || echo unknown)
-case "$arch" in
-amd64) arch=x86_64 ;;
-aarch64) arch=arm64 ;;
-esac
-
-if [ "$bin_arch" != universal ] && [ "$bin_arch" != unknown ] && [ "$bin_arch" != "$arch" ]; then
-	die "release v$version is built for $bin_arch, but this machine is $arch.
-    Release archives are built on Apple silicon and do not run on $arch Macs.
+wrong_build() {
+	die "release v$version ships a $1 build of note in $archive, but this machine is $2.
     Build from source instead:
       git clone https://github.com/$REPO.git && cd .note
       ./build_rs.sh   # or ./setup.sh && ./build_py.sh for the python build
       ./install.sh"
-fi
+}
+
+[ "$bin_os" = unknown ] || [ "$bin_os" = "$os" ] || wrong_build "$bin_os" "$os"
+[ "$bin_arch" = unknown ] || [ "$bin_arch" = "$arch" ] || wrong_build "$bin_arch" "$arch"
 
 # ── install ──────────────────────────────────────────────────────────────────
 mkdir -p "$bindir" || die "could not create $bindir"
@@ -328,7 +359,7 @@ fi
 # Gatekeeper quarantines archives that arrive through a browser; one that came
 # down this pipe is not quarantined, but clear the flag in case it was. It is
 # usually absent, and `xattr -d` says so by failing.
-if command -v xattr >/dev/null 2>&1; then
+if [ "$os" = macos ] && command -v xattr >/dev/null 2>&1; then
 	xattr -d com.apple.quarantine "$target" 2>/dev/null || true
 fi
 
@@ -357,7 +388,20 @@ case ":${PATH-}:" in
 esac
 
 if ! command -v fzf >/dev/null 2>&1; then
+	if command -v brew >/dev/null 2>&1; then
+		fzf_hint="brew install fzf"
+	elif command -v apt-get >/dev/null 2>&1; then
+		fzf_hint="sudo apt-get install fzf"
+	elif command -v dnf >/dev/null 2>&1; then
+		fzf_hint="sudo dnf install fzf"
+	elif command -v pacman >/dev/null 2>&1; then
+		fzf_hint="sudo pacman -S fzf"
+	elif command -v apk >/dev/null 2>&1; then
+		fzf_hint="apk add fzf"
+	else
+		fzf_hint="see https://github.com/junegunn/fzf"
+	fi
 	echo
 	echo "next: install fzf for \`note search\`, \`note open\` and \`note delete\`"
-	echo "      (run: brew install fzf)"
+	echo "      (run: $fzf_hint)"
 fi
