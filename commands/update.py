@@ -1,5 +1,6 @@
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -7,6 +8,7 @@ import urllib.request
 import zipfile
 
 GITHUB_API_URL = "https://api.github.com/repos/lhypds/.note/releases/latest"
+REPO_URL = "https://github.com/lhypds/.note"
 
 
 def get_current_version_and_build():
@@ -57,6 +59,25 @@ def get_latest_release():
     except Exception as e:
         print(f"Error: could not fetch latest release from GitHub: {e}")
         sys.exit(1)
+
+
+def check_release_supported(latest_version):
+    """Release archives are built on macOS only.
+
+    Downloading them on any other platform yields binaries this host cannot
+    execute, so stop here with build-from-source instructions instead.
+    """
+    system = platform.system()
+    if system == "Darwin":
+        return
+
+    print()
+    print(f"No {system} release artifacts are published for v{latest_version}.")
+    print("Build from source instead:")
+    print(f"  git clone {REPO_URL} && cd .note")
+    print("  ./setup.sh && ./build_py.sh   # or ./build_rs.sh for the Rust build")
+    print("  ./install.sh")
+    sys.exit(1)
 
 
 def find_asset_url(assets, filename):
@@ -151,6 +172,8 @@ def main(argv=None):
     print(f"Update available : v{current_version} → v{latest_version}")
 
     # ── 4. Resolve asset filename ─────────────────────────────────────────────
+    check_release_supported(latest_version)
+
     if build_type == "python":
         asset_filename = f"dot_note_python_v{latest_version}.zip"
     else:
