@@ -63,3 +63,9 @@ Then run `underline_fix.py --fix` to execute the fix.
 
 line_ending_check.py  
 Check the line ending.  
+
+
+License
+-------
+
+MIT License, see [LICENSE](LICENSE).  

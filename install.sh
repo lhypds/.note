@@ -22,16 +22,42 @@ if [ ! -f "$ROOT_DIR/note" ]; then
     exit 1
 fi
 
-# ---- Detect variant from executable ────────────────────────────────
-VERSION_OUTPUT="$(cd "$ROOT_DIR" && ./note --version)"
+# ---- Check the executable was built for this OS ────────────────────
+# Read the magic bytes rather than running the binary, so a mismatched
+# build reports the reason instead of "Exec format error".
+MAGIC="$(od -An -tx1 -N4 "$ROOT_DIR/note" 2>/dev/null | tr -d ' \n')"
+case "$MAGIC" in
+    7f454c46) BIN_OS="Linux" ;;                                       # ELF
+    cffaedfe|cefaedfe|feedfacf|feedface|cafebabe|bebafeca) BIN_OS="Darwin" ;;  # Mach-O / universal
+    *) BIN_OS="" ;;
+esac
 
-if echo "$VERSION_OUTPUT" | grep -q "(rust)"; then
-    VARIANT="rust"
-elif echo "$VERSION_OUTPUT" | grep -q "(python)"; then
+if [ -n "$BIN_OS" ] && [ "$BIN_OS" != "$OS" ]; then
+    echo "Error: this package contains a $BIN_OS build of 'note', but this machine is $OS."
+    echo "       Release archives are built on macOS and are not portable to Linux."
+    echo "       On Linux, build from source instead:"
+    echo "         ./setup.sh && ./build_py.sh   # or ./build_rs.sh for the Rust build"
+    echo "         ./install.sh"
+    exit 1
+fi
+
+# ---- Detect variant from executable ────────────────────────────────
+# The python build is a PyInstaller onedir bundle, identified by its
+# sibling _internal/ directory; only fall back to running the binary
+# when that is absent (onefile python build, or rust).
+if [ -d "$ROOT_DIR/_internal" ]; then
     VARIANT="python"
 else
-    echo "Error: could not detect build type from 'note --version' output: '$VERSION_OUTPUT'"
-    exit 1
+    VERSION_OUTPUT="$(cd "$ROOT_DIR" && ./note --version)"
+
+    if echo "$VERSION_OUTPUT" | grep -q "(rust)"; then
+        VARIANT="rust"
+    elif echo "$VERSION_OUTPUT" | grep -q "(python)"; then
+        VARIANT="python"
+    else
+        echo "Error: could not detect build type from 'note --version' output: '$VERSION_OUTPUT'"
+        exit 1
+    fi
 fi
 
 echo "Detected build type: $VARIANT"
