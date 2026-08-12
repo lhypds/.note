@@ -68,4 +68,15 @@ cd "$RELEASE_DIR/rust"
 zip -r -9 "$RUST_ZIP_PATH" .
 echo "Created archive: $RUST_ZIP_PATH"
 
-"$ROOT_DIR/release_gh.sh" "v${VERSION}" "$PYTHON_ZIP_PATH" "$RUST_ZIP_PATH"
+# Checksums, which get.sh and get.ps1 check the download against before
+# installing it. A release without them installs unverified.
+SHA256SUMS_PATH="$RELEASE_DIR/SHA256SUMS"
+if command -v sha256sum &>/dev/null; then
+	SHA=(sha256sum)
+else
+	SHA=(shasum -a 256)
+fi
+(cd "$RELEASE_DIR" && "${SHA[@]}" "$PYTHON_ZIP_NAME" "$RUST_ZIP_NAME" >"SHA256SUMS")
+echo "Created checksums: $SHA256SUMS_PATH"
+
+"$ROOT_DIR/release_gh.sh" "v${VERSION}" "$PYTHON_ZIP_PATH" "$RUST_ZIP_PATH" "$SHA256SUMS_PATH"

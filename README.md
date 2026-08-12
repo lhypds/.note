@@ -11,6 +11,29 @@ Basiclly it is free to write. There are few rules to follow:
 - The First section title will be `ABC`. Describes the topic.  
 
 
+install
+-------
+
+macOS, from the latest release:  
+```sh
+curl -fsSL https://raw.githubusercontent.com/lhypds/.note/main/get.sh | sh
+```
+
+Windows, from PowerShell:  
+```powershell
+irm https://raw.githubusercontent.com/lhypds/.note/main/get.ps1 | iex
+```
+
+`get.sh` installs the rust build into `/usr/local/bin` when that is writable, otherwise `~/.local/bin`. Pass options through the pipe with `sh -s --`:  
+```sh
+curl -fsSL https://raw.githubusercontent.com/lhypds/.note/main/get.sh | sh -s -- --prefix "$HOME/.local"
+curl -fsSL https://raw.githubusercontent.com/lhypds/.note/main/get.sh | sh -s -- --variant python
+curl -fsSL https://raw.githubusercontent.com/lhypds/.note/main/get.sh | sudo sh   # system-wide
+```
+
+Release archives are built on Apple silicon. On Linux, on Intel Macs, and on Windows until a Windows build is published, build from source instead — see below — or download a release and run its `install.sh`.  
+
+
 note
 ----
 
