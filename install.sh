@@ -110,7 +110,10 @@ else
 fi
 
 # ---- .noterc setup ─────────────────────────────────────────────────────
-USER_HOME="$(eval echo ~${SUDO_USER:-$USER})"
+# $USER is not always exported (containers, cron, non-login shells), and
+# `set -u` would abort here after the binary is already installed.
+INSTALL_USER="${SUDO_USER:-${USER:-$(id -un)}}"
+USER_HOME="$(eval echo "~$INSTALL_USER")"
 NOTERC_PATH="$USER_HOME/.noterc"
 if [ ! -f "$NOTERC_PATH" ]; then
     echo "Creating .noterc file at $NOTERC_PATH …"

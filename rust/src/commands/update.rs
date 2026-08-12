@@ -5,8 +5,41 @@ use std::process::{Command, exit};
 
 const GITHUB_API_URL: &str =
     "https://api.github.com/repos/lhypds/.note/releases/latest";
+const REPO_URL: &str = "https://github.com/lhypds/.note";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
+
+/// Capitalised host OS name, e.g. "linux" → "Linux".
+fn os_display() -> String {
+    let os = std::env::consts::OS;
+    let mut chars = os.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+        None => os.to_string(),
+    }
+}
+
+/// Release archives are built on macOS only.
+///
+/// Downloading them on any other platform yields binaries this host cannot
+/// execute, so stop here with build-from-source instructions instead.
+fn check_release_supported(latest_version: &str) {
+    if std::env::consts::OS == "macos" {
+        return;
+    }
+
+    println!();
+    println!(
+        "No {} release artifacts are published for v{}.",
+        os_display(),
+        latest_version
+    );
+    println!("Build from source instead:");
+    println!("  git clone {} && cd .note", REPO_URL);
+    println!("  ./build_rs.sh   # or ./setup.sh && ./build_py.sh for the Python build");
+    println!("  ./install.sh");
+    exit(1);
+}
 
 fn get_current_version_and_build() -> (String, String) {
     let output = Command::new("note")
@@ -235,6 +268,8 @@ pub fn main(argv: &[String]) {
     }
 
     // 4. Resolve asset filename
+    check_release_supported(&latest_version);
+
     let asset_filename = if build_type == "python" {
         format!("dot_note_python_v{}.zip", latest_version)
     } else {
