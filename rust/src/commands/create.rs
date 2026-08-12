@@ -49,8 +49,12 @@ pub fn run(topic: &str, directory: &str) -> Result<(), String> {
 
     println!("Created: {}", file_path.display());
 
-    // Open the note with the system default application
-    super::opener::open_path(&file_path)?;
+    // Open the note with the system default application. The note is written
+    // either way, so failing to open it is a warning, not a failed create —
+    // which is what a headless machine with no $EDITOR gets.
+    if let Err(e) = super::opener::open_path(&file_path) {
+        eprintln!("{}", e);
+    }
 
     Ok(())
 }

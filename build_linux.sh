@@ -139,10 +139,11 @@ build_rust() {
 		sh -eu -c "
 			apk add --no-cache build-base perl >/dev/null
 			rustup target add $triple >/dev/null 2>&1 || true
-			mkdir -p /work
+			mkdir -p /work/rust
 			cp /src/VERSION /work/VERSION
-			cp -R /src/rust /work/rust
-			rm -rf /work/rust/target
+			cp -R /src/rust/src /work/rust/src
+			cp /src/rust/Cargo.toml /src/rust/Cargo.lock \
+			   /src/rust/build.rs /src/rust/build.sh /work/rust/
 			cd /work/rust
 			export CARGO_TARGET_DIR=/cargo-target
 			NOTE_RUST_TARGET=$triple sh build.sh

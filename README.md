@@ -37,11 +37,12 @@ Each release publishes one archive per platform and variant, named `dot_note_<va
 |---------------|------|--------|
 | macOS arm64   | yes  | yes    |
 | Linux x86_64  | yes  | yes    |
+| Linux arm64   | yes  | yes    |
 | Windows       | no   | no     |
 
 The Linux rust build is statically linked against musl, so it runs on any distribution including Alpine. The Linux python build is a PyInstaller bundle against glibc 2.31, so it needs Debian 11, Ubuntu 20.04, RHEL 9 or newer.  
 
-On Intel Macs, on Linux arm64, and on Windows, build from source instead — see below — or download a release and run its `install.sh`.  
+On Intel Macs and on Windows, build from source instead — see below — or download a release and run its `install.sh`.  
 
 
 note
@@ -64,7 +65,7 @@ Either python or rust version generates `note` executable.
 Run `note` command with commands.  
 
 Release  
-`release.sh` builds every platform archive into the `release` folder and then publishes them with `release_gh.sh`. Run it on macOS: it builds the macOS archives natively and cross-builds the Linux ones in Docker. `--no-linux` skips the Docker step, `--no-publish` stops before GitHub.  
+`release.sh` builds every platform archive into the `release` folder and then publishes them with `release_gh.sh`. Run it on macOS: it builds the macOS archives natively and cross-builds the Linux ones in Docker. `--no-linux` skips the Docker step, `--linux-x86-only` skips the arm64 half, `--no-publish` stops before GitHub.  
 
 `build_linux.sh` does the Linux cross-build on its own (`--variant rust|python`, `--arch x86_64|arm64`). Docker must be running.
 

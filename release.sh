@@ -3,9 +3,10 @@
 # Build and package `note` for every platform this machine can produce, then
 # hand the archives to release_gh.sh.
 #
-#   ./release.sh                # host platform + linux (if docker is running)
-#   ./release.sh --no-linux     # host platform only
-#   ./release.sh --no-publish   # build and zip, but do not touch GitHub
+#   ./release.sh                   # host platform + linux x86_64 and arm64
+#   ./release.sh --no-linux        # host platform only
+#   ./release.sh --linux-x86-only  # skip the linux arm64 archives
+#   ./release.sh --no-publish      # build and zip, but do not touch GitHub
 #
 # Archives are named dot_note_<variant>_v<version>_<os>_<arch>.zip, which is
 # what get.sh, get.ps1 and `note update` look for.
@@ -18,13 +19,15 @@ VERSION="$(tr -d '[:space:]' <"$ROOT_DIR/VERSION")"
 
 with_linux=auto
 publish=yes
-linux_arches=(x86_64)
+# arm64 is the native one on an Apple silicon dev box; x86_64 goes through
+# qemu and is the slow half of the build.
+linux_arches=(x86_64 arm64)
 
 while [ $# -gt 0 ]; do
 	case "$1" in
 	--linux) with_linux=yes ;;
 	--no-linux) with_linux=no ;;
-	--linux-arm64) linux_arches=(x86_64 arm64) ;;
+	--linux-x86-only) linux_arches=(x86_64) ;;
 	--no-publish) publish=no ;;
 	-h | --help)
 		sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'

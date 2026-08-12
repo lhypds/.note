@@ -81,7 +81,7 @@ case "$HEADER" in
 esac
 
 mismatch() {
-    echo "Error: this package contains a $1 build of 'note', but this machine is $2."
+    echo "Error: this package is built for $1, but this machine is $2."
     echo "       Download the archive for ${OS}/${ARCH} instead:"
     echo "         https://github.com/lhypds/.note/releases/latest"
     echo "       or build from source:"
