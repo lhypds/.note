@@ -77,12 +77,12 @@ commands
 |------------|----------------------------------------------|-------------|
 | `format`   | `note format "ABC Note.txt"`                  | Fix section underline lengths in the note file. See [doc](./doc) to set up Format on Save for VS Code or Sublime Text. |
 | `search`   | `note search`                                 | Search note content and note names interactively using fzf. Selecting a file opens it with the system default application. |
-| `open`     | `note open`                                   | Fuzzy search note file names (not content) using fzf, then open the selected file with the system default application. |
+| `open`     | `note open [<query>]`                         | Fuzzy search note file names (not content) using fzf, then open the selected file with the system default application. With `<query>`, fzf is skipped and the nearest matching note opens directly — `note open drugs` opens `Drugs Note.txt`. |
 | `create`   | `note create "ABC" [-d\|--directory <dir>]`   | Create a new note file `ABC Note.txt`. `-d`/`--directory` sets the target directory (defaults to the current directory). |
 | `delete`   | `note delete`                                  | Fuzzy search note file names using fzf, then delete the selected file after `y/N` confirmation. |
 | `markdown` | `note markdown "ABC Note.txt" [--preview]`    | Convert the note to Markdown, output to a `.markdown` folder. `--preview` also generates a preview action log file. |
 
-`search`, `open`, and `delete` require [fzf](https://github.com/junegunn/fzf) to be installed (`brew install fzf`, or your distribution's package manager on Linux), and read note paths from `~/.noterc` under the `notePath` key (semicolon-separated):  
+`search`, `open`, and `delete` require [fzf](https://github.com/junegunn/fzf) to be installed (`note open <query>` does not, it matches names on its own) (`brew install fzf`, or your distribution's package manager on Linux), and read note paths from `~/.noterc` under the `notePath` key (semicolon-separated):  
 ```
 notePath=~/Dropbox/Note;~/Dropbox/Note.video;
 ```

@@ -72,7 +72,66 @@ fn open_file(path: &str) {
     }
 }
 
-pub fn main(_argv: &[String]) {
+fn file_name(path: &str) -> &str {
+    Path::new(path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or(path)
+}
+
+/// 'Drugs Note' -> 'drugs' — the topic, as `note create` spells it.
+fn note_title(stem: &str) -> &str {
+    stem.strip_suffix(" note").unwrap_or(stem)
+}
+
+fn is_subsequence(query: &str, text: &str) -> bool {
+    let mut chars = text.chars();
+    query.chars().all(|q| chars.any(|c| c == q))
+}
+
+/// Rank a note against the query; lower is nearer, `None` means no match.
+fn match_rank(query: &str, path: &str) -> Option<(u8, usize)> {
+    let name = file_name(path).to_lowercase();
+    let stem = Path::new(path)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or(path)
+        .to_lowercase();
+    let title = note_title(&stem);
+
+    if title == query {
+        return Some((0, 0));
+    }
+    if stem == query || name == query {
+        return Some((1, 0));
+    }
+    if title.starts_with(query) || stem.starts_with(query) {
+        return Some((2, 0));
+    }
+    if let Some(index) = stem.find(query) {
+        return Some((3, index));
+    }
+    if is_subsequence(query, &stem) {
+        return Some((4, 0));
+    }
+    None
+}
+
+fn find_nearest(files: &[String], query: &str) -> Option<String> {
+    let query = query.trim().to_lowercase();
+    files
+        .iter()
+        // Shorter names are the nearer match; the path keeps ties stable.
+        .filter_map(|path| {
+            match_rank(&query, path).map(|rank| (rank, file_name(path).chars().count(), path))
+        })
+        .min()
+        .map(|(_, _, path)| path.clone())
+}
+
+pub fn main(argv: &[String]) {
+    let query = argv.join(" ").trim().to_string();
+
     let paths = parse_noterc();
     if paths.is_empty() {
         eprintln!("No notePath entries found in ~/.noterc");
@@ -89,6 +148,20 @@ pub fn main(_argv: &[String]) {
     if files.is_empty() {
         eprintln!("No note files found.");
         std::process::exit(1);
+    }
+
+    if !query.is_empty() {
+        match find_nearest(&files, &query) {
+            Some(path) => {
+                println!("Opening: {}", path);
+                open_file(&path);
+            }
+            None => {
+                eprintln!("No note matching '{}'.", query);
+                std::process::exit(1);
+            }
+        }
+        return;
     }
 
     let entries: Vec<String> = files

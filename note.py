@@ -21,8 +21,13 @@ Commands:
 
   open      Search note names using fzf across paths in ~/.noterc,
             then open the selected file with the system default application.
+            With <query>, skip fzf and open the nearest matching note.
 
-            note open
+            note open [<query>]
+
+            Arguments:
+              <query>                 Note name to match.
+                                     e.g. 'drugs' opens 'Drugs Note.txt'.
 
   delete    Search note names using fzf across paths in ~/.noterc,
             then delete the selected file after confirmation.
@@ -89,7 +94,7 @@ def main(argv=None):
         return
 
     if command == "open":
-        open_command.main()
+        open_command.main(command_args)
         return
 
     if command == "delete":

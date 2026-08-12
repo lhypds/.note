@@ -36,7 +36,56 @@ def open_file(path):
     opener.open_file(path)
 
 
-def main():
+def note_title(stem):
+    """'Drugs Note' -> 'drugs' — the topic, as 'note create' spells it."""
+    lowered = stem.lower()
+    if lowered.endswith(" note"):
+        lowered = lowered[: -len(" note")]
+    return lowered
+
+
+def is_subsequence(query, text):
+    it = iter(text)
+    return all(ch in it for ch in query)
+
+
+def match_rank(query, path):
+    """Rank a note against the query; lower is nearer, None means no match."""
+    name = os.path.basename(path)
+    stem = os.path.splitext(name)[0].lower()
+    name = name.lower()
+    title = note_title(stem)
+
+    if title == query:
+        return (0, 0)
+    if stem == query or name == query:
+        return (1, 0)
+    if title.startswith(query) or stem.startswith(query):
+        return (2, 0)
+    index = stem.find(query)
+    if index != -1:
+        return (3, index)
+    if is_subsequence(query, stem):
+        return (4, 0)
+    return None
+
+
+def find_nearest(files, query):
+    query = query.strip().lower()
+    ranked = []
+    for path in files:
+        rank = match_rank(query, path)
+        if rank is not None:
+            # Shorter names are the nearer match; the path keeps ties stable.
+            ranked.append((rank, len(os.path.basename(path)), path))
+    if not ranked:
+        return None
+    return min(ranked)[2]
+
+
+def main(argv=None):
+    query = " ".join(argv or []).strip()
+
     paths = parse_noterc()
     if not paths:
         print("No notePath entries found in ~/.noterc", file=sys.stderr)
@@ -51,6 +100,15 @@ def main():
     if not files:
         print("No note files found.", file=sys.stderr)
         sys.exit(1)
+
+    if query:
+        nearest = find_nearest(files, query)
+        if nearest is None:
+            print(f"No note matching '{query}'.", file=sys.stderr)
+            sys.exit(1)
+        print(f"Opening: {nearest}")
+        open_file(nearest)
+        return
 
     entries = [f"{os.path.basename(path)}\t{path}" for path in files]
 
