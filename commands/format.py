@@ -12,6 +12,25 @@ def detect_line_ending(line):
     return ""
 
 
+def is_code_fence(text):
+    return text.strip().startswith("```")
+
+
+def compute_code_block_flags(lines):
+    """Flag every line inside a fenced code block, fence lines included."""
+    flags = []
+    inside = False
+
+    for line in lines:
+        if is_code_fence(line.rstrip("\r\n")):
+            inside = not inside
+            flags.append(True)
+        else:
+            flags.append(inside)
+
+    return flags
+
+
 # ---- I. Underline length fixer -------------------------------------
 def is_underline_line(text):
     if text == "":
@@ -23,11 +42,14 @@ def underline_char(text):
     return "-" if text.replace("-", "") == "" else "="
 
 
-def format_underline_length(lines):
+def format_underline_length(lines, in_code):
     fixed_count = 0
 
     max_start = len(lines) - 3
     for i in range(max_start):
+        if any(in_code[i : i + 4]):
+            continue
+
         line0 = lines[i].rstrip("\r\n")
         line1 = lines[i + 1].rstrip("\r\n")
         line2 = lines[i + 2].rstrip("\r\n")
@@ -58,11 +80,15 @@ def format_underline_length(lines):
 
 
 # ---- II. Blank line normalizer -------------------------------------
-def normalize_underline_blank_lines(lines):
+def normalize_underline_blank_lines(lines, in_code):
     fixed_count = 0
     i = 0
 
     while i < len(lines):
+        if in_code[i]:
+            i += 1
+            continue
+
         trimmed = lines[i].rstrip("\r\n")
         if trimmed and trimmed.replace("=", "") == "":
             # === : exactly 2 blank lines after
@@ -76,18 +102,21 @@ def normalize_underline_blank_lines(lines):
                 needed = 2 - blank_count
                 for k in range(needed):
                     lines.insert(i + 1 + k, ending)
+                    in_code.insert(i + 1 + k, False)
                 fixed_count += needed
                 i += 1 + needed + blank_count
             elif blank_count > 2:
                 excess = blank_count - 2
                 del lines[i + 1 : i + 1 + excess]
+                del in_code[i + 1 : i + 1 + excess]
                 fixed_count += excess
                 i += 1 + 2
             else:
                 i += 1 + blank_count
         elif trimmed and trimmed.replace("-", "") == "":
             # --- : exactly 2 blank lines before the title (line at i-1)
-            if i >= 2:
+            # a closing fence is not a title, so leave the block alone
+            if i >= 2 and not in_code[i - 1]:
                 blank_count_before = 0
                 k = i - 2
                 while k >= 0 and lines[k].rstrip("\r\n") == "":
@@ -98,13 +127,14 @@ def normalize_underline_blank_lines(lines):
                     needed = 2 - blank_count_before
                     for _ in range(needed):
                         lines.insert(i - 1, ending)
+                        in_code.insert(i - 1, False)
                     fixed_count += needed
                     i += needed
                 elif blank_count_before > 2:
                     excess = blank_count_before - 2
-                    del lines[
-                        i - 1 - blank_count_before : i - 1 - blank_count_before + excess
-                    ]
+                    start = i - 1 - blank_count_before
+                    del lines[start : start + excess]
+                    del in_code[start : start + excess]
                     fixed_count += excess
                     i -= excess
             # --- : exactly 1 blank line after
@@ -116,11 +146,13 @@ def normalize_underline_blank_lines(lines):
             if blank_count_after < 1:
                 ending = detect_line_ending(lines[i])
                 lines.insert(i + 1, ending)
+                in_code.insert(i + 1, False)
                 fixed_count += 1
                 i += 2
             elif blank_count_after > 1:
                 excess = blank_count_after - 1
                 del lines[i + 1 : i + 1 + excess]
+                del in_code[i + 1 : i + 1 + excess]
                 fixed_count += excess
                 i += 2
             else:
@@ -173,11 +205,15 @@ def display_width(text):
     return width
 
 
-def format_table(lines):
+def format_table(lines, in_code):
     fixed_count = 0
     i = 0
 
     while i < len(lines):
+        if in_code[i]:
+            i += 1
+            continue
+
         current = lines[i].rstrip("\r\n")
 
         if not is_table_line(current):
@@ -189,7 +225,7 @@ def format_table(lines):
             continue
 
         next_line = lines[i + 1].rstrip("\r\n")
-        if not is_table_line(next_line):
+        if in_code[i + 1] or not is_table_line(next_line):
             i += 1
             continue
 
@@ -200,7 +236,11 @@ def format_table(lines):
 
         start = i
         end = i + 2
-        while end < len(lines) and is_table_line(lines[end].rstrip("\r\n")):
+        while (
+            end < len(lines)
+            and not in_code[end]
+            and is_table_line(lines[end].rstrip("\r\n"))
+        ):
             end += 1
 
         raw_rows = [lines[index].rstrip("\r\n") for index in range(start, end)]
@@ -249,18 +289,21 @@ def format_note(file_path):
 
     fixed_count = 0
 
+    # Lines inside a fenced code block (```) are left untouched by every rule.
+    in_code = compute_code_block_flags(lines)
+
     # I. Fix underline length
     # for title or section (`===` or `---`)
     # the underline line must be exactly the same length as the title line.
-    fixed_count += format_underline_length(lines)
+    fixed_count += format_underline_length(lines, in_code)
 
     # II. Normalize blank lines around underlines
     # 1. `===` title      : exactly 2 blank lines after
     # 2. `---` section    : exactly 2 blank lines before the title, exactly 1 after
-    fixed_count += normalize_underline_blank_lines(lines)
+    fixed_count += normalize_underline_blank_lines(lines, in_code)
 
     # III. Format tables to ensure consistent column widths before fixing underline lengths.
-    fixed_count += format_table(lines)
+    fixed_count += format_table(lines, in_code)
 
     with open(file_path, "w", encoding="UTF8") as file:
         file.writelines(lines)

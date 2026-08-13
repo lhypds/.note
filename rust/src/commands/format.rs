@@ -6,6 +6,27 @@ fn display_width(text: &str) -> usize {
     text.width()
 }
 
+fn is_code_fence(text: &str) -> bool {
+    text.trim().starts_with("```")
+}
+
+/// Flag every line inside a fenced code block, fence lines included.
+fn compute_code_block_flags(lines: &[String]) -> Vec<bool> {
+    let mut flags = Vec::with_capacity(lines.len());
+    let mut inside = false;
+
+    for line in lines {
+        if is_code_fence(line.trim_end_matches(['\r', '\n'])) {
+            inside = !inside;
+            flags.push(true);
+        } else {
+            flags.push(inside);
+        }
+    }
+
+    flags
+}
+
 // ---- I. Underline length fixer -------------------------------------
 fn is_underline_line(text: &str) -> bool {
     if text.is_empty() {
@@ -22,11 +43,15 @@ fn underline_char(text: &str) -> char {
     }
 }
 
-fn format_underline_length(lines: &mut [String]) -> usize {
+fn format_underline_length(lines: &mut [String], in_code: &[bool]) -> usize {
     let mut fixed_count = 0;
 
     let max_start = if lines.len() > 3 { lines.len() - 3 } else { 0 };
     for i in 0..max_start {
+        if in_code[i..i + 4].iter().any(|&flag| flag) {
+            continue;
+        }
+
         let line0 = lines[i].trim_end_matches(['\r', '\n']);
         let line1 = lines[i + 1].trim_end_matches(['\r', '\n']);
         let line2 = lines[i + 2].trim_end_matches(['\r', '\n']);
@@ -63,11 +88,16 @@ fn format_underline_length(lines: &mut [String]) -> usize {
 }
 
 // ---- II. Blank line normalizer -------------------------------------
-fn normalize_underline_blank_lines(lines: &mut Vec<String>) -> usize {
+fn normalize_underline_blank_lines(lines: &mut Vec<String>, in_code: &mut Vec<bool>) -> usize {
     let mut fixed_count = 0;
     let mut i = 0;
 
     while i < lines.len() {
+        if in_code[i] {
+            i += 1;
+            continue;
+        }
+
         let trimmed = lines[i].trim_end_matches(['\r', '\n']);
         if !trimmed.is_empty() && trimmed.chars().all(|c| c == '=') {
             // === : exactly 2 blank lines after
@@ -82,12 +112,14 @@ fn normalize_underline_blank_lines(lines: &mut Vec<String>) -> usize {
                 let needed = 2 - blank_count;
                 for k in 0..needed {
                     lines.insert(i + 1 + k, ending.clone());
+                    in_code.insert(i + 1 + k, false);
                 }
                 fixed_count += needed;
                 i += 1 + needed + blank_count;
             } else if blank_count > 2 {
                 let excess = blank_count - 2;
                 lines.drain(i + 1..i + 1 + excess);
+                in_code.drain(i + 1..i + 1 + excess);
                 fixed_count += excess;
                 i += 3;
             } else {
@@ -95,7 +127,8 @@ fn normalize_underline_blank_lines(lines: &mut Vec<String>) -> usize {
             }
         } else if !trimmed.is_empty() && trimmed.chars().all(|c| c == '-') {
             // --- : exactly 2 blank lines before the title (line at i-1)
-            if i >= 2 {
+            // a closing fence is not a title, so leave the block alone
+            if i >= 2 && !in_code[i - 1] {
                 let mut blank_count_before: usize = 0;
                 let mut k = i - 2;
                 while lines[k].trim_end_matches(['\r', '\n']).is_empty() {
@@ -110,6 +143,7 @@ fn normalize_underline_blank_lines(lines: &mut Vec<String>) -> usize {
                     let needed = 2 - blank_count_before;
                     for _ in 0..needed {
                         lines.insert(i - 1, ending.clone());
+                        in_code.insert(i - 1, false);
                     }
                     fixed_count += needed;
                     i += needed;
@@ -117,6 +151,7 @@ fn normalize_underline_blank_lines(lines: &mut Vec<String>) -> usize {
                     let excess = blank_count_before - 2;
                     let start = i - 1 - blank_count_before;
                     lines.drain(start..start + excess);
+                    in_code.drain(start..start + excess);
                     fixed_count += excess;
                     i -= excess;
                 }
@@ -132,11 +167,13 @@ fn normalize_underline_blank_lines(lines: &mut Vec<String>) -> usize {
             if blank_count_after < 1 {
                 let ending = detect_line_ending(&lines[i]).to_string();
                 lines.insert(i + 1, ending);
+                in_code.insert(i + 1, false);
                 fixed_count += 1;
                 i += 2;
             } else if blank_count_after > 1 {
                 let excess = blank_count_after - 1;
                 lines.drain(i + 1..i + 1 + excess);
+                in_code.drain(i + 1..i + 1 + excess);
                 fixed_count += excess;
                 i += 2;
             } else {
@@ -196,11 +233,16 @@ fn format_separator_cell(width: usize, original: &str) -> String {
     )
 }
 
-fn format_table(lines: &mut Vec<String>) -> usize {
+fn format_table(lines: &mut Vec<String>, in_code: &[bool]) -> usize {
     let mut fixed_count = 0;
     let mut i = 0;
 
     while i < lines.len() {
+        if in_code[i] {
+            i += 1;
+            continue;
+        }
+
         let current = lines[i].trim_end_matches(['\r', '\n']);
         if !is_table_line(current) {
             i += 1;
@@ -213,7 +255,7 @@ fn format_table(lines: &mut Vec<String>) -> usize {
         }
 
         let next_line = lines[i + 1].trim_end_matches(['\r', '\n']);
-        if !is_table_line(next_line) {
+        if in_code[i + 1] || !is_table_line(next_line) {
             i += 1;
             continue;
         }
@@ -226,7 +268,10 @@ fn format_table(lines: &mut Vec<String>) -> usize {
 
         let start = i;
         let mut end = i + 2;
-        while end < lines.len() && is_table_line(lines[end].trim_end_matches(['\r', '\n'])) {
+        while end < lines.len()
+            && !in_code[end]
+            && is_table_line(lines[end].trim_end_matches(['\r', '\n']))
+        {
             end += 1;
         }
 
@@ -327,18 +372,21 @@ pub fn run(file_path: &Path) -> Result<(), String> {
 
     let mut fixed_count = 0;
 
+    // Lines inside a fenced code block (```) are left untouched by every rule.
+    let mut in_code = compute_code_block_flags(&lines);
+
     // I. Fix underline length
     // for title or section (`===` or `---`)
     // the underline line must be exactly the same length as the title line.
-    fixed_count += format_underline_length(&mut lines);
+    fixed_count += format_underline_length(&mut lines, &in_code);
 
     // II. Normalize blank lines around underlines
     // 1. `===` title      : exactly 2 blank lines after
     // 2. `---` section    : exactly 2 blank lines before the title, exactly 1 after
-    fixed_count += normalize_underline_blank_lines(&mut lines);
+    fixed_count += normalize_underline_blank_lines(&mut lines, &mut in_code);
 
     // III. Format tables to ensure consistent column widths.
-    fixed_count += format_table(&mut lines);
+    fixed_count += format_table(&mut lines, &in_code);
 
     fs::write(file_path, lines.concat())
         .map_err(|e| format!("failed to write '{}': {}", file_path.display(), e))?;
