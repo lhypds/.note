@@ -10,7 +10,6 @@ set -eu
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 BIN_DIR="/usr/local/bin"
-LIB_DIR="/usr/local/lib/note"
 
 # ---- OS ────────────────────────────────────────────────────────────
 OS="$(uname -s)"
@@ -85,7 +84,7 @@ mismatch() {
     echo "       Download the archive for ${OS}/${ARCH} instead:"
     echo "         https://github.com/lhypds/.note/releases/latest"
     echo "       or build from source:"
-    echo "         ./build_rs.sh   # or ./setup.sh && ./build_py.sh for the python build"
+    echo "         ./build.sh"
     echo "         ./install.sh"
     exit 1
 }
@@ -97,51 +96,13 @@ if [ -n "$BIN_ARCH" ] && [ "$BIN_ARCH" != "$ARCH" ]; then
     mismatch "$BIN_ARCH" "$ARCH"
 fi
 
-# ---- Detect variant from executable ────────────────────────────────
-# The python build is a PyInstaller onedir bundle, identified by its
-# sibling _internal/ directory; only fall back to running the binary
-# when that is absent (onefile python build, or rust).
-if [ -d "$ROOT_DIR/_internal" ]; then
-    VARIANT="python"
-else
-    VERSION_OUTPUT="$(cd "$ROOT_DIR" && ./note --version)"
-
-    if echo "$VERSION_OUTPUT" | grep -q "(rust)"; then
-        VARIANT="rust"
-    elif echo "$VERSION_OUTPUT" | grep -q "(python)"; then
-        VARIANT="python"
-    else
-        echo "Error: could not detect build type from 'note --version' output: '$VERSION_OUTPUT'"
-        exit 1
-    fi
-fi
-
-echo "Detected build type: $VARIANT"
-
 # ---- Install ───────────────────────────────────────────────────────
-echo "Installing \`note\` ($VARIANT) for ${OS}/${ARCH} …"
+echo "Installing \`note\` for ${OS}/${ARCH} …"
 
 $SUDO mkdir -p "$BIN_DIR"
 
-if [ "$VARIANT" = "rust" ]; then
-    # Single self-contained binary — copy directly into BIN_DIR
-    $SUDO install -m 755 "$ROOT_DIR/note" "$BIN_DIR/note"
-    echo "Installed to \`$BIN_DIR/note\`"
-
-elif [ "$VARIANT" = "python" ]; then
-    # PyInstaller onedir bundle — install bundle then symlink
-    $SUDO rm -rf "$LIB_DIR"
-    $SUDO mkdir -p "$LIB_DIR"
-    $SUDO cp -R "$ROOT_DIR/." "$LIB_DIR/"
-    $SUDO chmod 755 "$LIB_DIR/note"
-
-    # Remove any previous binary/symlink
-    $SUDO rm -f "$BIN_DIR/note"
-    $SUDO ln -s "$LIB_DIR/note" "$BIN_DIR/note"
-
-    echo "Installed bundle: $LIB_DIR"
-    echo "Symlinked:        $BIN_DIR/note -> $LIB_DIR/note"
-fi
+$SUDO install -m 755 "$ROOT_DIR/note" "$BIN_DIR/note"
+echo "Installed to \`$BIN_DIR/note\`"
 
 # ---- fzf ───────────────────────────────────────────────────────────────────
 if command -v fzf >/dev/null 2>&1; then

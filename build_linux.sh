@@ -2,49 +2,34 @@
 #
 # Cross-build the Linux artifacts of `note` in Docker, from any Docker host.
 #
-#   ./build_linux.sh                          # both variants, x86_64
-#   ./build_linux.sh --variant rust           # rust only
+#   ./build_linux.sh                          # x86_64
 #   ./build_linux.sh --arch arm64             # aarch64
 #   ./build_linux.sh --out /tmp/linux_build   # somewhere other than release/
 #
-# The rust build is statically linked against musl, so the binary runs on any
-# distribution. The python build is a PyInstaller bundle against the glibc of
-# an old-stable Debian, so it needs glibc 2.31 or newer (Debian 11, Ubuntu
-# 20.04, RHEL 9 and up).
+# The build is statically linked against musl, so the binary runs on any
+# distribution.
 #
 # Sources are copied into the container rather than built in the bind mount, so
-# a Linux build never overwrites the host's own `note`, `_internal` or
-# `rust/target`.
+# a Linux build never overwrites the host's own `note` or `rust/target`.
 #
 # Env:
 #   NOTE_LINUX_RUST_IMAGE  rust builder image (default: rust:1-alpine)
-#   NOTE_LINUX_PY_IMAGE    python builder image (default: python:3.11-bullseye)
 
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 RUST_IMAGE=${NOTE_LINUX_RUST_IMAGE:-rust:1-alpine}
-PY_IMAGE=${NOTE_LINUX_PY_IMAGE:-python:3.11-bullseye}
 
-variant=both
 arch=x86_64
 out=
 
 usage() {
-	sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
+	sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 while [ $# -gt 0 ]; do
 	case "$1" in
-	--variant)
-		variant=${2:?--variant needs a value}
-		shift 2
-		;;
-	--variant=*)
-		variant=${1#*=}
-		shift
-		;;
 	--arch)
 		arch=${2:?--arch needs a value}
 		shift 2
@@ -73,14 +58,6 @@ while [ $# -gt 0 ]; do
 	esac
 done
 
-case "$variant" in
-rust | python | both) ;;
-*)
-	echo "build_linux.sh: unknown variant \"$variant\" — use rust, python or both" >&2
-	exit 2
-	;;
-esac
-
 case "$arch" in
 x86_64 | amd64)
 	arch=x86_64
@@ -103,7 +80,7 @@ esac
 if ! command -v docker >/dev/null 2>&1; then
 	echo "Error: docker is not installed — it is what builds the Linux artifacts." >&2
 	echo "       Install Docker Desktop (https://docker.com), or build on a Linux" >&2
-	echo "       machine with ./build_rs.sh / ./build_py.sh instead." >&2
+	echo "       machine with ./build.sh instead." >&2
 	exit 1
 fi
 if ! docker info >/dev/null 2>&1; then
@@ -154,39 +131,6 @@ build_rust() {
 	echo "Built: $dest/note"
 }
 
-build_python() {
-	local dest="$out/python"
-	mkdir -p "$dest"
-	echo "Building python for linux/$arch ..."
-
-	docker run --rm \
-		--platform "$platform" \
-		-v "$ROOT_DIR:/src:ro" \
-		-v "$dest:/out" \
-		"$PY_IMAGE" \
-		sh -eu -c '
-			mkdir -p /work
-			cp /src/note.py /src/VERSION /src/requirements.txt /src/build_py.sh /work/
-			cp -R /src/commands /work/commands
-			find /work -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true
-			cd /work
-			python -m venv /venv
-			/venv/bin/pip install -q --upgrade pip
-			/venv/bin/pip install -q -r requirements.txt
-			PYTHON_BIN=/venv/bin/python bash build_py.sh
-			cp /work/note /out/note
-			rm -rf /out/_internal
-			cp -R /work/_internal /out/_internal
-			chmod 0755 /out/note
-		'
-	echo "Built: $dest/note (+ _internal/)"
-}
-
-if [ "$variant" = rust ] || [ "$variant" = both ]; then
-	build_rust
-fi
-if [ "$variant" = python ] || [ "$variant" = both ]; then
-	build_python
-fi
+build_rust
 
 echo "Linux artifacts in $out"

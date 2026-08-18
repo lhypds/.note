@@ -1,15 +1,9 @@
 .DS_Store
 .vscode
 *.json
-.venv/
 
 *.md
 
-build/
-dist/
-__pycache__/
-*.spec
-_internal/
 note
 notemd
 

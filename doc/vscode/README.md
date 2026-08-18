@@ -7,27 +7,27 @@ How to Setup on VS Code
 
 2. Add the following configuration to `settings.json`.
 
-Modify the `note.py` path.
+Modify the `note` executable path.
 
 ```json
 "emeraldwalk.runonsave": {
     "commands": [
         {
             "match": "\\ Note.txt$",
-            "cmd": "python3 ~/code/gcc3/note/.note/note.py -f \"${file}\""
+            "cmd": "~/code/gcc3/note/.note/note format \"${file}\""
         }
     ]
-}
+},
 ```
 
-Or if use binary build from Rust or Python. (faster)  
+If `note` is already on your PATH, the bare command works too.  
 
 ```json
 "emeraldwalk.runonsave": {
     "commands": [
         {
             "match": "\\ Note.txt$",
-            "cmd": "~/code/gcc3/note/.note/note -f \"${file}\""
+            "cmd": "note format \"${file}\""
         }
     ]
 },

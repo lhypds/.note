@@ -8,8 +8,10 @@
 #   ./release.sh --linux-x86-only  # skip the linux arm64 archives
 #   ./release.sh --no-publish      # build and zip, but do not touch GitHub
 #
-# Archives are named dot_note_<variant>_v<version>_<os>_<arch>.zip, which is
-# what get.sh, get.ps1 and `note update` look for.
+# Archives are named dot_note_rust_v<version>_<os>_<arch>.zip, which is what
+# get.sh, get.ps1 and `note update` look for. The "rust" token is kept from
+# when there was a second build to tell apart, so the names stay stable across
+# releases.
 
 set -euo pipefail
 
@@ -30,7 +32,7 @@ while [ $# -gt 0 ]; do
 	--linux-x86-only) linux_arches=(x86_64) ;;
 	--no-publish) publish=no ;;
 	-h | --help)
-		sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+		sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
 		exit 0
 		;;
 	*)
@@ -62,18 +64,11 @@ rm -rf "$RELEASE_DIR"
 mkdir -p "$RELEASE_DIR"
 echo "Cleared previous release artifacts."
 
-# ── host builds ──────────────────────────────────────────────────────────────
-mkdir -p "$RELEASE_DIR/$HOST_PLATFORM/python" "$RELEASE_DIR/$HOST_PLATFORM/rust"
+# ── host build ───────────────────────────────────────────────────────────────
+mkdir -p "$RELEASE_DIR/$HOST_PLATFORM/rust"
 
-echo "Building Python for $HOST_PLATFORM ..."
-"$ROOT_DIR/build_py.sh"
-mv "$ROOT_DIR/note" "$RELEASE_DIR/$HOST_PLATFORM/python/note"
-if [ -d "$ROOT_DIR/_internal" ]; then
-	mv "$ROOT_DIR/_internal" "$RELEASE_DIR/$HOST_PLATFORM/python/_internal"
-fi
-
-echo "Building Rust for $HOST_PLATFORM ..."
-"$ROOT_DIR/build_rs.sh"
+echo "Building for $HOST_PLATFORM ..."
+"$ROOT_DIR/build.sh"
 mv "$ROOT_DIR/note" "$RELEASE_DIR/$HOST_PLATFORM/rust/note"
 
 PLATFORMS=("$HOST_PLATFORM")
@@ -101,8 +96,8 @@ fi
 ASSETS=()
 
 package() {
-	local platform=$1 variant=$2
-	local dir="$RELEASE_DIR/$platform/$variant"
+	local platform=$1
+	local dir="$RELEASE_DIR/$platform/rust"
 	[ -d "$dir" ] || return 0
 	[ -f "$dir/note" ] || {
 		echo "release.sh: $dir has no note executable" >&2
@@ -117,7 +112,7 @@ package() {
 	linux_*) cp "$ROOT_DIR/doc/installation/README.linux.txt" "$dir/README.txt" ;;
 	esac
 
-	local zip_name="dot_note_${variant}_v${VERSION}_${platform}.zip"
+	local zip_name="dot_note_rust_v${VERSION}_${platform}.zip"
 	local zip_path="$RELEASE_DIR/$zip_name"
 	rm -f "$zip_path"
 	(cd "$dir" && zip -q -r -9 "$zip_path" .)
@@ -126,8 +121,7 @@ package() {
 }
 
 for platform in "${PLATFORMS[@]}"; do
-	package "$platform" python
-	package "$platform" rust
+	package "$platform"
 done
 
 # ── checksums ────────────────────────────────────────────────────────────────

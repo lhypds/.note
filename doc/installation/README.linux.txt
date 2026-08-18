@@ -22,21 +22,12 @@ To install somewhere you own instead of /usr/local, use get.sh:
 `curl -fsSL https://raw.githubusercontent.com/lhypds/.note/main/get.sh | sh -s -- --prefix "$HOME/.local"`
 
 
-Which build to take
--------------------
+About the build
+---------------
 
-* Rust build (dot_note_rust_*)
-Statically linked against musl. It has no shared library dependencies at
-all, so it runs on any distribution, including Alpine.
-
-* Python build (dot_note_python_*)
-A PyInstaller bundle, linked against glibc 2.31. It needs Debian 11,
-Ubuntu 20.04, RHEL 9 or newer. The `note` executable and its `_internal`
-directory must stay side by side, which is why install.sh copies the whole
-bundle to /usr/local/lib/note and symlinks it.
-
-The rust build is faster and more portable. Prefer it unless you have a
-reason not to.
+The `note` binary (dot_note_rust_*) is statically linked against musl. It
+has no shared library dependencies at all, so it runs on any distribution,
+including Alpine.
 
 
 Opening notes on a headless machine
@@ -54,5 +45,4 @@ Uninstall
 
 `./uninstall.sh`
 
-It removes /usr/local/bin/note, the /usr/local/lib/note bundle if the
-python build was installed, and ~/.note.
+It removes /usr/local/bin/note and ~/.note.

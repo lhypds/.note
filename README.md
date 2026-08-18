@@ -24,23 +24,22 @@ Windows, from PowerShell:
 irm https://raw.githubusercontent.com/lhypds/.note/main/get.ps1 | iex
 ```
 
-`get.sh` installs the rust build into `/usr/local/bin` when that is writable, otherwise `~/.local/bin`. Pass options through the pipe with `sh -s --`:  
+`get.sh` installs into `/usr/local/bin` when that is writable, otherwise `~/.local/bin`. Pass options through the pipe with `sh -s --`:  
 ```sh
 curl -fsSL https://raw.githubusercontent.com/lhypds/.note/main/get.sh | sh -s -- --prefix "$HOME/.local"
-curl -fsSL https://raw.githubusercontent.com/lhypds/.note/main/get.sh | sh -s -- --variant python
 curl -fsSL https://raw.githubusercontent.com/lhypds/.note/main/get.sh | sudo sh   # system-wide
 ```
 
-Each release publishes one archive per platform and variant, named `dot_note_<variant>_v<version>_<os>_<arch>.zip`:  
+Each release publishes one archive per platform, named `dot_note_rust_v<version>_<os>_<arch>.zip`:  
 
-| Platform      | rust | python |
-|---------------|------|--------|
-| macOS arm64   | yes  | yes    |
-| Linux x86_64  | yes  | yes    |
-| Linux arm64   | yes  | yes    |
-| Windows       | no   | no     |
+| Platform      | published |
+|---------------|-----------|
+| macOS arm64   | yes       |
+| Linux x86_64  | yes       |
+| Linux arm64   | yes       |
+| Windows       | no        |
 
-The Linux rust build is statically linked against musl, so it runs on any distribution including Alpine. The Linux python build is a PyInstaller bundle against glibc 2.31, so it needs Debian 11, Ubuntu 20.04, RHEL 9 or newer.  
+The Linux build is statically linked against musl, so it runs on any distribution including Alpine.  
 
 On Intel Macs and on Windows, build from source instead — see below — or download a release and run its `install.sh`.  
 
@@ -50,24 +49,15 @@ note
 
 Executable.  
 
-Use `setup.sh` to setup and use `build.sh` to build.  
+Written in Rust, in the `rust` folder. `cargo` is required — use `brew install rust` to install it.  
 
-* Python version  
-`python` and `pip` is required.  
-
-* Rust version  
-Locate at `rust` folder.  
-Rust version is faster and the executable is a single file.  
-`cargo` is required, use `brew install rust` to install.  
-
-Run `build.sh` to select Python or Rust.  
-Either python or rust version generates `note` executable.  
-Run `note` command with commands.  
+Run `./build.sh` to build; it generates the `note` executable at the repository root.  
+Run `note` with the commands below.  
 
 Release  
 `release.sh` builds every platform archive into the `release` folder and then publishes them with `release_gh.sh`. Run it on macOS: it builds the macOS archives natively and cross-builds the Linux ones in Docker. `--no-linux` skips the Docker step, `--linux-x86-only` skips the arm64 half, `--no-publish` stops before GitHub.  
 
-`build_linux.sh` does the Linux cross-build on its own (`--variant rust|python`, `--arch x86_64|arm64`). Docker must be running.
+`build_linux.sh` does the Linux cross-build on its own (`--arch x86_64|arm64`). Docker must be running.
 
 
 commands
@@ -88,19 +78,6 @@ notePath=~/Dropbox/Note;~/Dropbox/Note.video;
 ```
 
 Selected files open with the system default application — `open` on macOS, `xdg-open` on Linux. On a headless Linux machine, where there is no `xdg-open`, note falls back to `$VISUAL` and then `$EDITOR`.  
-
-
-tools scripts
--------------
-
-underline_fix.py  
-Fix the unederline, make the underline the same length as the title.  
-`underline_fix.py` to genreate `scan_result.json`.  
-Review and edit the `scan_result.json`.  
-Then run `underline_fix.py --fix` to execute the fix.  
-
-line_ending_check.py  
-Check the line ending.  
 
 
 License

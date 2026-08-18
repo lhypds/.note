@@ -6,8 +6,7 @@
 #
 # No toolchain is needed: this downloads the build published for your platform,
 # checks it against the release's SHA256SUMS, and copies it into a bin
-# directory. By default it installs the rust build, a single self-contained
-# binary; --variant python installs the PyInstaller bundle instead.
+# directory. The build is a single self-contained binary.
 #
 # Options go through the pipe with `sh -s --`:
 #
@@ -16,9 +15,7 @@
 #
 # Env:
 #   NOTE_VERSION  version to install, with or without the leading "v"
-#   NOTE_VARIANT  build to install: rust (default) or python
 #   NOTE_BINDIR   install directory, overriding <prefix>/bin
-#   NOTE_LIBDIR   python bundle directory, overriding <prefix>/lib/note
 #   NOTE_REPO     "owner/name" to download from (default: lhypds/.note)
 #   PREFIX        install prefix; the binary lands in <prefix>/bin
 #   GITHUB_TOKEN  lifts GitHub's anonymous rate limit, if you hit it
@@ -27,10 +24,8 @@ set -eu
 
 REPO=${NOTE_REPO:-lhypds/.note}
 version=${NOTE_VERSION:-}
-variant=${NOTE_VARIANT:-rust}
 prefix=${PREFIX:-}
 bindir=${NOTE_BINDIR:-}
-libdir=${NOTE_LIBDIR:-}
 tmp=
 
 usage() {
@@ -39,14 +34,12 @@ Install `note` from its latest GitHub release.
 
 Usage:
   curl -fsSL .../get.sh | sh
-  curl -fsSL .../get.sh | sh -s -- [-p <prefix>] [-V <version>] [--variant <v>]
+  curl -fsSL .../get.sh | sh -s -- [-p <prefix>] [-V <version>]
 
 Options:
   -p, --prefix <dir>    install prefix (default: /usr/local when writable,
                         otherwise $HOME/.local)
       --bindir <dir>    install directory, overriding <prefix>/bin
-      --libdir <dir>    python bundle directory, overriding <prefix>/lib/note
-      --variant <v>     build to install: rust (default) or python
   -V, --version <ver>   version to install (default: the latest release)
   -h, --help            show this help
 
@@ -86,24 +79,6 @@ while [ $# -gt 0 ]; do
 		bindir=${1#*=}
 		shift
 		;;
-	--libdir)
-		[ $# -ge 2 ] || die "$1 needs a value"
-		libdir=$2
-		shift 2
-		;;
-	--libdir=*)
-		libdir=${1#*=}
-		shift
-		;;
-	--variant)
-		[ $# -ge 2 ] || die "$1 needs a value"
-		variant=$2
-		shift 2
-		;;
-	--variant=*)
-		variant=${1#*=}
-		shift
-		;;
 	-V | --version)
 		[ $# -ge 2 ] || die "$1 needs a value"
 		version=$2
@@ -124,11 +99,6 @@ while [ $# -gt 0 ]; do
 		;;
 	esac
 done
-
-case "$variant" in
-rust | python) ;;
-*) die "unknown variant \"$variant\" — use rust or python" ;;
-esac
 
 # ── platform ─────────────────────────────────────────────────────────────────
 # The os/arch pair picks the release archive; they are the same tokens
@@ -206,7 +176,6 @@ if [ -z "$prefix" ]; then
 	fi
 fi
 [ -n "$bindir" ] || bindir=$prefix/bin
-[ -n "$libdir" ] || libdir=$prefix/lib/note
 
 not_writable() {
 	echo "get.sh: $1 is not writable by this user." >&2
@@ -218,36 +187,28 @@ not_writable() {
 }
 
 writable "$bindir" || not_writable "$bindir"
-if [ "$variant" = python ]; then
-	# The bundle directory is replaced wholesale below, so a --libdir that names
-	# a directory full of other things is a mistake worth catching here.
-	case "$libdir" in
-	"" | / | /bin | /lib | /usr | /usr/bin | /usr/lib | /usr/local | /usr/local/bin | /usr/local/lib | "${HOME:-/nonexistent}")
-		die "refusing to install the python bundle into \"$libdir\" — it is replaced wholesale; pass --libdir <dir>/note"
-		;;
-	esac
-	writable "$libdir" || not_writable "$libdir"
-fi
 
 # ── download and verify ──────────────────────────────────────────────────────
-archive=dot_note_${variant}_v${version}_${os}_${arch}.zip
+# The "rust" token is still in the archive name: it is what every published
+# release is called, back to when there was a second build to tell apart.
+archive=dot_note_rust_v${version}_${os}_${arch}.zip
 base=https://github.com/$REPO/releases/download/v$version
 tmp=$(mktemp -d 2>/dev/null || mktemp -d -t note-install)
 
-echo "get.sh: downloading note $version ($variant build) for $os/$arch..."
+echo "get.sh: downloading note $version for $os/$arch..."
 if ! http_save "$base/$archive" "$tmp/$archive" 2>/dev/null; then
 	# Releases up to v0.0.22 published one untagged archive, built on Apple
 	# silicon. Fall back to it where it would actually run.
-	legacy=dot_note_${variant}_v${version}.zip
+	legacy=dot_note_rust_v${version}.zip
 	if [ "$os" = macos ] && [ "$arch" = arm64 ] &&
 		http_save "$base/$legacy" "$tmp/$legacy" 2>/dev/null; then
 		archive=$legacy
 	else
-		die "release v$version of $REPO publishes no $variant build for $os/$arch.
+		die "release v$version of $REPO publishes no build for $os/$arch.
     It should be named $archive — see https://github.com/$REPO/releases
     Or build it from source:
       git clone https://github.com/$REPO.git && cd .note
-      ./build_rs.sh   # or ./setup.sh && ./build_py.sh for the python build
+      ./build.sh
       ./install.sh"
 	fi
 fi
@@ -274,8 +235,8 @@ else
 fi
 
 # ── unpack ───────────────────────────────────────────────────────────────────
-# The archive holds `note` (plus `_internal/` for the python build) at its top
-# level, so it unpacks straight into a staging directory.
+# The archive holds `note` at its top level, so it unpacks straight into a
+# staging directory.
 stage=$tmp/unpacked
 mkdir -p "$stage"
 if command -v unzip >/dev/null 2>&1; then
@@ -323,7 +284,7 @@ wrong_build() {
 	die "release v$version ships a $1 build of note in $archive, but this machine is $2.
     Build from source instead:
       git clone https://github.com/$REPO.git && cd .note
-      ./build_rs.sh   # or ./setup.sh && ./build_py.sh for the python build
+      ./build.sh
       ./install.sh"
 }
 
@@ -333,28 +294,13 @@ wrong_build() {
 # ── install ──────────────────────────────────────────────────────────────────
 mkdir -p "$bindir" || die "could not create $bindir"
 
-if [ "$variant" = rust ]; then
-	# Single self-contained binary. Copy in beside the target and rename, so an
-	# interrupted install cannot leave a half-written note behind, and a running
-	# one is replaced rather than rewritten.
-	chmod 0755 "$bin"
-	cp "$bin" "$bindir/.note.new" || die "could not write to $bindir"
-	mv "$bindir/.note.new" "$bindir/note" || die "could not install $bindir/note"
-	target=$bindir/note
-else
-	# PyInstaller onedir bundle: the executable needs its sibling _internal/, so
-	# the whole bundle is installed and only a symlink goes on the PATH.
-	[ -d "$stage/_internal" ] || die "$archive is not a python bundle — it has no _internal/ directory"
-	rm -rf "$libdir" || die "could not replace $libdir"
-	mkdir -p "$libdir" || die "could not create $libdir"
-	cp -R "$stage/." "$libdir/" || die "could not write to $libdir"
-	chmod 0755 "$libdir/note"
-
-	rm -f "$bindir/note"
-	ln -s "$libdir/note" "$bindir/note" || die "could not install $bindir/note"
-	echo "get.sh: installed bundle $libdir"
-	target=$bindir/note
-fi
+# Single self-contained binary. Copy in beside the target and rename, so an
+# interrupted install cannot leave a half-written note behind, and a running one
+# is replaced rather than rewritten.
+chmod 0755 "$bin"
+cp "$bin" "$bindir/.note.new" || die "could not write to $bindir"
+mv "$bindir/.note.new" "$bindir/note" || die "could not install $bindir/note"
+target=$bindir/note
 
 # Gatekeeper quarantines archives that arrive through a browser; one that came
 # down this pipe is not quarantined, but clear the flag in case it was. It is

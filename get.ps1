@@ -23,10 +23,6 @@
     Version to install, with or without the leading "v". Defaults to the
     latest release, or to $env:NOTE_VERSION when that is set.
 
-.PARAMETER Variant
-    Build to install: rust (default), a single self-contained binary, or
-    python, the PyInstaller bundle.
-
 .PARAMETER InstallDir
     Directory to install note.exe into. Defaults to $env:NOTE_INSTALL_DIR, or
     %LOCALAPPDATA%\Programs\note — a per-user location, so no administrator
@@ -41,8 +37,6 @@
 
 param(
     [string] $Version    = $env:NOTE_VERSION,
-    [ValidateSet('rust', 'python')]
-    [string] $Variant    = $(if ($env:NOTE_VARIANT) { $env:NOTE_VARIANT } else { 'rust' }),
     [string] $InstallDir = $env:NOTE_INSTALL_DIR,
     [string] $Repo       = $(if ($env:NOTE_REPO) { $env:NOTE_REPO } else { 'lhypds/.note' }),
     [switch] $NoPath
@@ -106,12 +100,14 @@ $assets = @($release.assets | ForEach-Object { $_.name })
 if (-not $InstallDir) { $InstallDir = Join-Path $env:LOCALAPPDATA 'Programs\note' }
 
 # ── asset ───────────────────────────────────────────────────────────────────
-# Preferred name first, then any Windows asset of this variant, so a release
-# that names its archives differently still installs.
+# Preferred name first, then any Windows asset, so a release that names its
+# archives differently still installs. The "rust" token is still in the name:
+# it is what every published release is called, back to when there was a second
+# build to tell apart.
 function Find-Asset($wanted) {
-    $exact = "dot_note_${Variant}_v${Version}_windows_${wanted}.zip"
+    $exact = "dot_note_rust_v${Version}_windows_${wanted}.zip"
     if ($assets -contains $exact) { return $exact }
-    $assets | Where-Object { $_ -match 'windows' -and $_ -match [regex]::Escape($wanted) -and $_ -match [regex]::Escape($Variant) } |
+    $assets | Where-Object { $_ -match 'windows' -and $_ -match [regex]::Escape($wanted) } |
         Select-Object -First 1
 }
 
@@ -123,7 +119,7 @@ if (-not $archive -and $arch -eq 'arm64') {
     if ($archive) { Write-Host "get.ps1: release v$Version has no arm64 build; installing the amd64 one (Windows will emulate it)" }
 }
 if (-not $archive) {
-    Write-Host "get.ps1: release v$Version of $Repo publishes no Windows build of the $Variant variant." -ForegroundColor Red
+    Write-Host "get.ps1: release v$Version of $Repo publishes no Windows build." -ForegroundColor Red
     if ($assets) { Write-Host "get.ps1: it has: $($assets -join ', ')" }
     Write-Host "get.ps1: install it under WSL instead:"
     Write-Host "get.ps1:   curl -fsSL https://raw.githubusercontent.com/$Repo/main/get.sh | sh"
@@ -138,7 +134,7 @@ New-Item -ItemType Directory -Path $temp -Force | Out-Null
 
 try {
     # ── download and verify ─────────────────────────────────────────────────
-    Write-Host "get.ps1: downloading note $Version ($Variant build) for windows/$arch..."
+    Write-Host "get.ps1: downloading note $Version for windows/$arch..."
     $zip = Join-Path $temp $archive
     try {
         Save-File "$base/$archive" $zip
@@ -204,17 +200,6 @@ try {
     }
     try {
         Copy-Item -LiteralPath $binary.FullName -Destination $target -Force
-        if ($Variant -eq 'python') {
-            # The PyInstaller bundle only runs beside its _internal directory,
-            # so that ships with the executable.
-            $internal = Join-Path $binary.Directory.FullName '_internal'
-            if (-not (Test-Path -LiteralPath $internal)) {
-                Fail "$archive is not a python bundle — it has no _internal directory"
-            }
-            $installedInternal = Join-Path $InstallDir '_internal'
-            Remove-Item -LiteralPath $installedInternal -Recurse -Force -ErrorAction SilentlyContinue
-            Copy-Item -LiteralPath $internal -Destination $installedInternal -Recurse -Force
-        }
     } catch {
         Fail "could not write ${target}: $($_.Exception.Message)"
     }

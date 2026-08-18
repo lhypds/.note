@@ -36,7 +36,7 @@ fn get_current_version_and_build() -> (String, String) {
     }
 
     let raw = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    // Expected: "v0.0.6 (rust)"  or  "v0.0.6 (python)"
+    // Expected: "v0.0.6 (rust)"
     let parts: Vec<&str> = raw.split_whitespace().collect();
     if parts.is_empty() {
         eprintln!("Error: unexpected output from 'note --version': {:?}", raw);
@@ -248,18 +248,16 @@ pub fn main(argv: &[String]) {
     }
 
     // 4. Resolve asset filename
-    let variant = if build_type == "python" { "python" } else { "rust" };
+    // The "rust" token is still in the archive name: it is what every published
+    // release is called, back to when there was a second build to tell apart.
     let (os, arch) = platform_tokens();
-    let tagged = format!(
-        "dot_note_{}_v{}_{}_{}.zip",
-        variant, latest_version, os, arch
-    );
+    let tagged = format!("dot_note_rust_v{}_{}_{}.zip", latest_version, os, arch);
 
     // Releases up to v0.0.22 published one untagged archive, built on Apple
     // silicon. Fall back to it where it would actually run.
     let mut candidates = vec![tagged.clone()];
     if os == "macos" && arch == "arm64" {
-        candidates.push(format!("dot_note_{}_v{}.zip", variant, latest_version));
+        candidates.push(format!("dot_note_rust_v{}.zip", latest_version));
     }
 
     let empty_assets = serde_json::Value::Array(vec![]);
@@ -269,8 +267,8 @@ pub fn main(argv: &[String]) {
         .find_map(|name| find_asset_url(assets, name).map(|url| (name.clone(), url)))
         .unwrap_or_else(|| {
             eprintln!(
-                "Error: release v{} publishes no {} build for {}/{} — it should be named '{}'.",
-                latest_version, variant, os, arch, tagged
+                "Error: release v{} publishes no build for {}/{} — it should be named '{}'.",
+                latest_version, os, arch, tagged
             );
             if let Some(arr) = assets.as_array() {
                 let names: Vec<&str> = arr

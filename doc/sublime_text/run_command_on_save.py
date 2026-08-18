@@ -13,7 +13,7 @@ class RunCommandOnSave(sublime_plugin.EventListener):
         if not file_path.endswith((".txt",)):
             return
 
-        cmd = ["python3", os.path.expanduser("~/code/gcc3/note/.note/note.py"), "-f", file_path]
+        cmd = [os.path.expanduser("~/code/gcc3/note/.note/note"), "format", file_path]
         try:
             subprocess.Popen(
                 cmd,

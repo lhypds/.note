@@ -2,51 +2,14 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-usage() {
-	echo "Usage: ./build.sh [python|rust]"
+# Check that cargo is installed before attempting to run the Rust build
+if ! command -v cargo >/dev/null 2>&1; then
+	echo "Error: 'cargo' is not installed or not found in PATH."
+	echo "Install Rust (which provides cargo) from https://rustup.rs or with your package manager (e.g. 'brew install rust' on macOS)."
 	exit 1
-}
-
-TARGET="${1:-}"
-
-if [ -z "$TARGET" ]; then
-	echo "Choose build target:"
-	echo "1) python"
-	echo "2) rust"
-	read -r -p "Enter choice [1-2]: " CHOICE
-
-	case "$CHOICE" in
-		1|python)
-			TARGET="python"
-			;;
-		2|rust)
-			TARGET="rust"
-			;;
-		*)
-			echo "Error: invalid choice."
-			usage
-			;;
-	esac
 fi
 
-case "$TARGET" in
-	python)
-		if [ $# -gt 1 ]; then
-			"$ROOT_DIR/build_py.sh" "${@:2}"
-		else
-			"$ROOT_DIR/build_py.sh"
-		fi
-		;;
-	rust)
-		if [ $# -gt 1 ]; then
-			"$ROOT_DIR/build_rs.sh" "${@:2}"
-		else
-			"$ROOT_DIR/build_rs.sh"
-		fi
-		;;
-	*)
-		usage
-		;;
-esac
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+cd "$ROOT_DIR/rust"
+./build.sh "$@"

@@ -8,7 +8,6 @@
 set -eu
 
 BIN_DIR="/usr/local/bin"
-LIB_DIR="/usr/local/lib/note"
 
 # ── OS check ─────────────────────────────────────────────────────────────────
 OS="$(uname -s)"
@@ -31,23 +30,14 @@ fi
 
 REMOVED=0
 REMOVED_BIN=0
-REMOVED_LIB=0
 REMOVED_DATA=0
 
-# Remove binary / symlink from BIN_DIR
+# Remove the binary from BIN_DIR
 if [ -e "$BIN_DIR/note" ] || [ -L "$BIN_DIR/note" ]; then
     $SUDO rm -f "$BIN_DIR/note"
     echo "Removed: $BIN_DIR/note"
     REMOVED=1
     REMOVED_BIN=1
-fi
-
-# Remove Python bundle directory (only present for python installs)
-if [ -d "$LIB_DIR" ]; then
-    $SUDO rm -rf "$LIB_DIR"
-    echo "Removed: $LIB_DIR"
-    REMOVED=1
-    REMOVED_LIB=1
 fi
 
 # Remove user data directory
@@ -66,9 +56,6 @@ else
     echo "\`note\` executable has been uninstalled from:"
     if [ "$REMOVED_BIN" -eq 1 ]; then
         echo "  - $BIN_DIR/note"
-    fi
-    if [ "$REMOVED_LIB" -eq 1 ]; then
-        echo "  - $LIB_DIR"
     fi
     if [ "$REMOVED_DATA" -eq 1 ]; then
         echo "  - $NOTE_DATA_DIR"

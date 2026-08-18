@@ -16,7 +16,8 @@ On macOS, double click `open_user_folder.command` to open the `User` folder.
 Copy the `run_command_on_save.py` to the `User` folder.  
 
 3. 
-Modify the `note.py` path in `run_command_on_save.py`.  
+Modify the `note` executable path in `run_command_on_save.py`.  
+(Sublime Text plugins are Python — that is the plugin API, not a `note` dependency.)  
 
 ```python
 import os
@@ -33,8 +34,8 @@ class RunCommandOnSave(sublime_plugin.EventListener):
         if not file_path.endswith((".txt",)):
             return
 
-        # Here replace the `note.py` path.
-        cmd = ["python3", os.path.expanduser("~/code/gcc3/note/.note/note.py"), "-f", file_path]
+        # Here replace the `note` executable path.
+        cmd = [os.path.expanduser("~/code/gcc3/note/.note/note"), "format", file_path]
         try:
             subprocess.Popen(
                 cmd,
