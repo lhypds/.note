@@ -126,30 +126,33 @@ fn normalize_underline_blank_lines(lines: &mut Vec<String>, in_code: &mut Vec<bo
                 i += 1 + blank_count;
             }
         } else if !trimmed.is_empty() && trimmed.chars().all(|c| c == '-') {
-            // --- : exactly 2 blank lines before the title (line at i-1)
+            // --- : exactly 2 blank lines before the title (line at i-1),
+            //       but only 1 when that title opens the file
             // a closing fence is not a title, so leave the block alone
-            if i >= 2 && !in_code[i - 1] {
+            if i >= 1 && !in_code[i - 1] {
+                let title = i - 1;
                 let mut blank_count_before: usize = 0;
-                let mut k = i - 2;
-                while lines[k].trim_end_matches(['\r', '\n']).is_empty() {
+                while blank_count_before < title
+                    && lines[title - 1 - blank_count_before]
+                        .trim_end_matches(['\r', '\n'])
+                        .is_empty()
+                {
                     blank_count_before += 1;
-                    if k == 0 {
-                        break;
-                    }
-                    k -= 1;
                 }
-                if blank_count_before < 2 {
+                // nothing but blank lines above means this is the first title
+                let wanted = if blank_count_before == title { 1 } else { 2 };
+                if blank_count_before < wanted {
                     let ending = detect_line_ending(&lines[i]).to_string();
-                    let needed = 2 - blank_count_before;
+                    let needed = wanted - blank_count_before;
                     for _ in 0..needed {
-                        lines.insert(i - 1, ending.clone());
-                        in_code.insert(i - 1, false);
+                        lines.insert(title, ending.clone());
+                        in_code.insert(title, false);
                     }
                     fixed_count += needed;
                     i += needed;
-                } else if blank_count_before > 2 {
-                    let excess = blank_count_before - 2;
-                    let start = i - 1 - blank_count_before;
+                } else if blank_count_before > wanted {
+                    let excess = blank_count_before - wanted;
+                    let start = title - blank_count_before;
                     lines.drain(start..start + excess);
                     in_code.drain(start..start + excess);
                     fixed_count += excess;
@@ -383,6 +386,7 @@ pub fn run(file_path: &Path) -> Result<(), String> {
     // II. Normalize blank lines around underlines
     // 1. `===` title      : exactly 2 blank lines after
     // 2. `---` section    : exactly 2 blank lines before the title, exactly 1 after
+    //                       (only 1 blank line before when the title opens the file)
     fixed_count += normalize_underline_blank_lines(&mut lines, &mut in_code);
 
     // III. Format tables to ensure consistent column widths.
